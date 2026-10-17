@@ -1,0 +1,34 @@
+# nfpm config for .deb / .rpm. VERSION and ARCH come from the environment.
+name: memtree
+arch: ${ARCH}
+platform: linux
+version: ${VERSION}
+# Take the version verbatim (e.g. 0.1.0~rc.2) instead of parsing it as semver.
+version_schema: none
+section: devel
+priority: optional
+maintainer: memtree contributors
+description: |
+  Visual code exploration desktop app with a built-in MCP server so coding
+  agents can walk developers through code, diagrams and proposed changes.
+homepage: https://github.com/aitakemyjob/memtree
+license: MIT
+depends:
+  - libgtk-3-0
+  - libwebkit2gtk-4.1-0
+  - git
+overrides:
+  rpm:
+    depends:
+      - gtk3
+      - webkit2gtk4.1
+      - git
+contents:
+  - src: build/bin/memtree
+    dst: /usr/bin/memtree
+    file_info:
+      mode: 0755
+  - src: packaging/memtree.desktop
+    dst: /usr/share/applications/memtree.desktop
+  - src: build/appicon.png
+    dst: /usr/share/icons/hicolor/512x512/apps/memtree.png

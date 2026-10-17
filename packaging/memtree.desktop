@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=memtree
+GenericName=Code Explorer
+Comment=Explore code visually with your AI agent
+Exec=memtree
+Icon=memtree
+Terminal=false
+Categories=Development;IDE;
+Keywords=code;git;diff;graph;mcp;agent;
+StartupWMClass=memtree
