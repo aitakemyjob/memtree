@@ -38,7 +38,7 @@ export function ConsolidationView() {
         <div className="card" style={{ marginBottom: 18 }}>
           <h3>Who does this</h3>
           <div className="muted">
-            memtree runs no model, so it only proposes clusters. A connected agent calls <span className="mono">consolidation_candidates</span>, writes the gist, and calls <span className="mono">memory_compress</span> with it. You can do the same by hand below.
+            MemTree runs no model, so it only proposes clusters. A connected agent calls <span className="mono">consolidation_candidates</span>, writes the gist, and calls <span className="mono">memory_compress</span> with it. You can do the same by hand below.
           </div>
         </div>
 

@@ -58,7 +58,7 @@ export function App() {
   if (!s.ready) {
     return (
       <div className="app">
-        <Spinner label="Starting memtree…" />
+        <Spinner label="Starting MemTree…" />
       </div>
     );
   }
@@ -66,7 +66,7 @@ export function App() {
     return (
       <div className="app" style={{ display: 'grid', placeItems: 'center' }}>
         <div className="error-box" style={{ maxWidth: 520 }}>
-          <b>memtree could not reach its backend.</b>
+          <b>MemTree could not reach its backend.</b>
           <div className="muted" style={{ marginTop: 6 }}>{s.fatal}</div>
           <button className="btn" style={{ marginTop: 10 }} onClick={() => location.reload()}>Retry</button>
         </div>

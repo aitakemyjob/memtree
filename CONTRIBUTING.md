@@ -111,11 +111,14 @@ of the system one (ESP-IDF, for instance) the race build fails with
 
 ## Branding
 
-The source logo is `logo.png` at the repo root. After changing it, run
-`make icon` to regenerate `build/appicon.png` (desktop icons and Linux
-packages), `frontend/public/logo.png`, `frontend/public/favicon.png` and
-`docs/assets/logo.png` (README). The tool removes a baked-in checkerboard
-background automatically.
+The tree mark shown in the app (title bar, welcome screen, browser tab) and at
+the top of the README is one hand-drawn SVG, `frontend/public/favicon.svg`;
+edit it there and both update.
+
+The desktop icon's source is `logo.png` at the repo root. After changing it,
+run `make icon` to regenerate `build/appicon.png` (desktop icons and Linux
+packages), `frontend/public/logo.png` and `frontend/public/favicon.png`. The
+tool removes a baked-in checkerboard background automatically.
 
 ## Releases
 

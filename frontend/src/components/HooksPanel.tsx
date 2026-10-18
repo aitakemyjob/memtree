@@ -77,7 +77,7 @@ export function HooksPanel() {
   return (
     <div className="col" style={{ gap: 14 }}>
       <div className="muted">
-        Hooks let a harness recall memories on every prompt and record what happened; the MCP entry lets it call memtree's tools. Installing merges into the harness's own config and keeps what is already there.
+        Hooks let a harness recall memories on every prompt and record what happened; the MCP entry lets it call MemTree's tools. Installing merges into the harness's own config and keeps what is already there.
       </div>
       <div className="col" style={{ gap: 6 }}>
         <label className="field-label" htmlFor="hook-project">Project folder (optional)</label>

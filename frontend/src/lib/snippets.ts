@@ -28,7 +28,7 @@ export function connectSnippets(url: string): Record<Client, Snippet[]> {
     Cursor: [{ note: 'Add to ~/.cursor/mcp.json:', text: JSON.stringify({ mcpServers: { memtree: { url } } }, null, 2) }],
     'VS Code': [{ note: 'Add to .vscode/mcp.json in the workspace:', text: JSON.stringify({ servers: { memtree: { type: 'http', url } } }, null, 2) }],
     Codex: [{ note: 'Add to ~/.codex/config.toml:', text: '[mcp_servers.memtree]\ncommand = "memtree"\nargs = ["mcp"]' }],
-    'Claude Desktop': [{ note: 'Claude Desktop speaks stdio; memtree bridges it to the running app. Add to claude_desktop_config.json:', text: stdioJson }],
+    'Claude Desktop': [{ note: 'Claude Desktop speaks stdio; MemTree bridges it to the running app. Add to claude_desktop_config.json:', text: stdioJson }],
     Other: [
       { note: 'Streamable HTTP endpoint:', text: url },
       { note: 'Or launch over stdio (bridges to the running app):', text: 'memtree mcp' },
