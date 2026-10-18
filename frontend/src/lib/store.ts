@@ -45,6 +45,7 @@ export interface Versions {
   memory: number;
   lattice: number;
   capture: number;
+  trace: number;
 }
 
 interface Store {
@@ -123,7 +124,7 @@ interface Store {
 
 let toastSeq = 0;
 let staleTimer: ReturnType<typeof setTimeout> | undefined;
-let pending: { memory?: boolean; lattice?: boolean; capture?: boolean; stats?: boolean } = {};
+let pending: { memory?: boolean; lattice?: boolean; capture?: boolean; trace?: boolean; stats?: boolean } = {};
 
 /** How long to coalesce a burst of events (an agent saving ten memories) into one refetch. */
 export const REFRESH_DEBOUNCE_MS = 250;
@@ -140,7 +141,7 @@ export const useStore = create<Store>((set, get) => ({
   connectOpen: false,
   filters: { ...defaultFilters, showCaptures: readShowCaptures() },
   query: '',
-  versions: { memory: 0, lattice: 0, capture: 0 },
+  versions: { memory: 0, lattice: 0, capture: 0, trace: 0 },
   knownSessions: new Set(),
   nodes: [],
   recallInfo: {},
@@ -302,10 +303,10 @@ export const useStore = create<Store>((set, get) => ({
       const t = toToast(fx.toast, get());
       get().toast(t);
     }
-    if (fx.stale.memory || fx.stale.lattice || fx.stale.capture || fx.refreshStats) {
+    if (fx.stale.memory || fx.stale.lattice || fx.stale.capture || fx.stale.trace || fx.refreshStats) {
       pending = {
         memory: pending.memory || fx.stale.memory, lattice: pending.lattice || fx.stale.lattice,
-        capture: pending.capture || fx.stale.capture, stats: pending.stats || fx.refreshStats,
+        capture: pending.capture || fx.stale.capture, trace: pending.trace || fx.stale.trace, stats: pending.stats || fx.refreshStats,
       };
       clearTimeout(staleTimer);
       staleTimer = setTimeout(() => {
@@ -323,6 +324,7 @@ export const useStore = create<Store>((set, get) => ({
         memory: s.versions.memory + (which.memory ? 1 : 0),
         lattice: s.versions.lattice + (which.lattice ? 1 : 0),
         capture: s.versions.capture + (which.capture ? 1 : 0),
+        trace: s.versions.trace + (which.trace ? 1 : 0),
       },
     }));
   },

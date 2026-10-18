@@ -15,7 +15,7 @@ import { Welcome } from './Welcome';
 
 const settings: Settings = {
   theme: 'sfc-dark', fontSize: 13, mcpPort: 47475, dbPath: '', agentWrites: true, captureHooks: true, surfaceThreshold: 0.25, maxSurface: 3,
-  linkHalfLifeDays: 30, maintainHours: 12, tiers: { ageHoursToSemantic: 72, ageHoursToCompact: 720, activationCeilingToCompress: 0.5, minClusterSize: 2 },
+  linkHalfLifeDays: 30, maintainHours: 12, traceRetrievals: true, traceRetentionDays: 90, tiers: { ageHoursToSemantic: 72, ageHoursToCompact: 720, activationCeilingToCompress: 0.5, minClusterSize: 2 },
 };
 const app: AppState = {
   version: '0.1.0', platform: 'linux', settings, mcp: { running: true, url: 'http://127.0.0.1:47475/mcp' },
@@ -107,7 +107,7 @@ describe('MemoryCard', () => {
     expect(screen.getByText('pinned')).toBeInTheDocument();
     expect(screen.getByText('superseded')).toBeInTheDocument();
     expect(screen.getByText('project/db', { selector: '.chip' })).toBeInTheDocument();
-    expect(screen.getByLabelText('Score decomposition')).toHaveTextContent('relevance 0.80');
+    expect(screen.getByLabelText('Score decomposition')).toHaveTextContent('text 0.80');
     expect(screen.getByLabelText('Score decomposition')).toHaveTextContent(/=\s*0\.75/);
     expect(screen.getByText('both')).toBeInTheDocument();
   });

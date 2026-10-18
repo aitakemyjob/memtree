@@ -598,3 +598,14 @@ button.tm-cell:hover, button.tm-cell:focus-visible { filter: brightness(1.12); o
 .path-warning { color: var(--warn); font-size: 12px; line-height: 1.6; }
 .path-warning .btn { margin-left: 8px; }
 .path-warning .btn { color: var(--text); }
+
+/* Retrieval traces */
+.ret-cal { margin: 0; display: flex; flex-direction: column; gap: 4px; }
+.ret-cal svg { display: block; max-width: 100%; }
+.trace-cal-bar { padding: 10px 16px; border-bottom: 1px solid var(--border); background: var(--bg-1); flex: none; overflow-x: auto; }
+.trace-query { margin: 8px 0 6px; font-size: 14px; line-height: 1.5; user-select: text; }
+.qh-mark { background: var(--accent-2-soft); color: var(--accent-2); border-radius: 3px; padding: 0 2px; }
+.trace-hit { border-bottom: 1px solid var(--border); padding: 4px 0 8px; }
+.trace-why { padding: 0 8px 0 30px; display: flex; flex-direction: column; gap: 4px; }
+.trace-row { align-items: flex-start; }
+.mem-trace { display: flex; flex-direction: column; gap: 4px; }

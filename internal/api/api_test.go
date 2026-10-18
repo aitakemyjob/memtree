@@ -133,3 +133,25 @@ func TestLatticeMethods(t *testing.T) {
 		t.Error("prune")
 	}
 }
+
+func TestTraceMethods(t *testing.T) {
+	a := newAPI(t)
+	var saved struct{ ID string }
+	json.Unmarshal([]byte(call(t, a, "memory.save", `{"summary":"api note about caching","project":"/p"}`)), &saved)
+	var res struct{ TraceID string }
+	json.Unmarshal([]byte(call(t, a, "memory.recall", `{"query":"caching","project":"/p"}`)), &res)
+	if res.TraceID == "" {
+		t.Fatal("recall should return a trace id")
+	}
+	if got := call(t, a, "trace.get", `{"id":"`+res.TraceID+`"}`); !strings.Contains(got, `"origin":"ui"`) || !strings.Contains(got, `"tool":"memory.recall"`) || !strings.Contains(got, saved.ID) {
+		t.Errorf("trace.get: %s", got)
+	}
+	for _, m := range []string{"trace.list", "trace.heat", "trace.daily"} {
+		if got := call(t, a, m, `{}`); !strings.Contains(got, saved.ID) && !strings.Contains(got, `"retrieved":1`) {
+			t.Errorf("%s: %s", m, got)
+		}
+	}
+	if got := call(t, a, "trace.forMemory", `{"id":"`+saved.ID+`"}`); !strings.Contains(got, res.TraceID) {
+		t.Errorf("trace.forMemory: %s", got)
+	}
+}

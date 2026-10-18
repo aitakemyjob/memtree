@@ -16,6 +16,11 @@ describe('planEvent', () => {
   it('lattice events refresh the lattice and the memory paths', () => {
     expect(planEvent({ type: 'lattice', data: { op: 'tag' } }, ctx).stale).toEqual({ lattice: true, memory: true });
   });
+  it('trace events refresh trace views only', () => {
+    const fx = planEvent({ type: 'trace', data: { op: 'record', id: 'ret_1' } }, ctx);
+    expect(fx.stale).toEqual({ trace: true });
+    expect(fx.refreshStats).toBe(false);
+  });
   it('appends activity and toasts only for notable agent writes', () => {
     expect(planEvent({ type: 'activity', data: act({}) }, ctx).toast).toBeUndefined();
     const saved = planEvent({ type: 'activity', data: act({ tool: 'memory_save', summary: 'Use WAL mode' }) }, ctx);

@@ -53,11 +53,14 @@ only a human action in the UI deletes.
 ### Recall scoring
 
 ```
-score = relevance × importance × activation × project boost
+score = relevance × importance × activation × project boost × both bonus
 ```
 
 - **relevance**: FTS5/BM25 (Porter stemming) relative to the best match in the
-  result set. A lattice hit uses its link weight × node activation instead.
+  result set (`bm25Normalized`). A lattice hit uses its link weight × node
+  activation instead (`linkScore`). A memory both routes found takes the larger
+  of the two and a **both bonus** of 1.15 (`bothBonus`), so the recorded
+  factors always multiply out to the final score.
 - **importance**: 1.0 / 1.5 / 2.5.
 - **activation**: ACT-R base-level learning, `ln(Σ tᵢ^-d)` over the last 20
   access times (hours, min 1), squashed through a logistic into [0.15, 1].
@@ -68,6 +71,53 @@ score = relevance × importance × activation × project boost
 
 Surfacing a memory in a result does **not** reinforce it; only reliance does.
 The UI's "Why this score" view shows each factor.
+
+### Retrieval traces
+
+Every retrieval is recorded so a human can see *why* a memory came back and
+*whether it was then used* (the Traces view, the inspector's retrieval
+history, and the Timeline's Retrieved and Used colour modes). It is on by
+default and can be switched off. Traces are kept for 90 days by default; the
+period is configurable, and 0 keeps them forever.
+
+- **What is recorded.** Recall, hook surfacing, session-start anchors and
+  lattice probes each write one *event*:
+  - Who asked: origin, tool or hook event, harness and session id. For hooks,
+    the session id is the same one capture uses.
+  - The query, plus the query tokens that fired each category.
+  - Whether the hits were reinforced.
+  - Each *hit*: its rank, route, the `seed → via` lattice path and its depth,
+    and its score factors.
+
+  An event is recorded even when nothing came back (a "quiet" event), which
+  helps tune the surfacing threshold.
+- **Use evidence.** Use is inferred by deterministic rules only; memtree runs
+  no model. When an agent later acts on a retrieved memory within 30 minutes,
+  the tracker credits the most closely related retrieval: the same session
+  first, then the same project, then the newest. The rules that ship are:
+  - **fetched**: the agent called `memory_get` on the memory.
+  - **acted**: the agent called `memory_supersede`, `memory_update`,
+    `memory_pin` or `memory_compress` on it.
+  - **cited**: the memory's id appears in the agent's reply, as captured by the
+    Stop hook.
+
+  "Reinforced" (the hits were touched as relied on) is kept separate from
+  "used", which requires evidence.
+- **Seams.** `internal/trace` holds the model and the interfaces, and imports
+  nothing else from memtree. The pieces:
+  - `Recorder` writes traces and `Reader` queries them. `UseWriter` and
+    `Pruner` complete the storage interfaces.
+  - Each evidence rule is a `Detector`. `UseTracker` matches observations to
+    recent retrievals and runs every registered detector.
+  - `Retention` applies the configured period.
+  - `store.Traces` is the SQLite implementation.
+  - Adapters (MCP, hooks, the API, the CLI) only attach a `trace.Origin` to the
+    context and report `Observation`s. Recording itself happens once, in
+    `core`, so the hook fallback that opens the database directly records too.
+- **Extending.** A new evidence rule is a new `Detector` added to the tracker's
+  list. A new MCP tool counts as evidence when its arguments implement
+  `memoryIDs()`. A new Timeline colour is an entry in `HEAT_MODES`
+  (`frontend/src/lib/treemap.ts`).
 
 ### The lattice
 

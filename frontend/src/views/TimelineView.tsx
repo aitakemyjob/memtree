@@ -6,18 +6,16 @@ import { useNow } from '../lib/hooks';
 import { importanceName, plural, projectName, relTime, truncate } from '../lib/format';
 import { useStore } from '../lib/store';
 import { heatColor, readableOn } from '../lib/themes';
-import { layoutMemories, type Cell, type ColorBy, type SizeBy } from '../lib/treemap';
+import { useHeat } from '../lib/traces';
+import { HEAT_MODES, layoutMemories, modeNeedsTraces, type Cell, type ColorBy, type SizeBy } from '../lib/treemap';
 import { Empty, ErrorBox, Seg, Spinner, useAsync, useSize } from '../components/ui';
 
-const LEGEND: Record<ColorBy, [string, string]> = {
-  activation: ['cold (faded)', 'hot (recently used)'],
-  age: ['oldest', 'newest'],
-  importance: ['routine', 'lesson'],
-};
+const COLOR_OPTIONS = (Object.keys(HEAT_MODES) as ColorBy[]).map((value) => ({ value, label: HEAT_MODES[value].label }));
 
 /**
  * Heatmap of live memories: tiles grouped project, then kind; area is
- * importance (or equal), colour is activation, age or importance. Click a
+ * importance (or equal), colour is any mode in HEAT_MODES (activation,
+ * age, importance, or how often a memory was retrieved and used). Click a
  * tile to open the memory.
  */
 export function TimelineView() {
@@ -31,7 +29,12 @@ export function TimelineView() {
   // "include" flags and pinned-only do not apply here.
   const args = listArgs({ ...defaultFilters, project: s.filters.project, tier: s.filters.tier, kind: s.filters.kind }, 3000);
   const data = useAsync(() => api.listMemories(args), [JSON.stringify(args), s.versions.memory]);
-  const cells = useMemo(() => layoutMemories(data.data ?? [], nowMs, size.width, size.height, { colorBy, sizeBy }), [data.data, nowMs, size.width, size.height, colorBy, sizeBy]);
+  const heat = useHeat({}, modeNeedsTraces(colorBy));
+  const cells = useMemo(
+    () => layoutMemories(data.data ?? [], nowMs, size.width, size.height, { colorBy, sizeBy, traces: heat.data }),
+    [data.data, nowMs, size.width, size.height, colorBy, sizeBy, heat.data],
+  );
+  const legend = HEAT_MODES[colorBy].legend;
   const selected = s.inspect?.kind === 'memory' ? s.inspect.id : undefined;
   const total = (data.data ?? []).length;
 
@@ -46,14 +49,14 @@ export function TimelineView() {
           label="Colour by"
           value={colorBy}
           onChange={setColorBy}
-          options={[{ value: 'activation', label: 'Activation' }, { value: 'age', label: 'Age' }, { value: 'importance', label: 'Importance' }]}
+          options={COLOR_OPTIONS}
         />
         <span className="faint">Size</span>
         <Seg<SizeBy> label="Size by" value={sizeBy} onChange={setSizeBy} options={[{ value: 'importance', label: 'Importance' }, { value: 'equal', label: 'Equal' }]} />
         <div className="row" aria-label="Legend" style={{ gap: 6 }}>
-          <span className="faint">{LEGEND[colorBy][0]}</span>
+          <span className="faint">{legend[0]}</span>
           <span className="legend-bar" />
-          <span className="faint">{LEGEND[colorBy][1]}</span>
+          <span className="faint">{legend[1]}</span>
         </div>
       </div>
       <div className="graph-host" ref={ref}>

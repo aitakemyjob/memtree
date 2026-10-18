@@ -13,6 +13,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/aitakemyjob/memtree/internal/core"
+	"github.com/aitakemyjob/memtree/internal/trace"
 )
 
 const instructions = `memtree is the user's persistent, local memory for coding agents. It remembers decisions,
@@ -80,13 +81,18 @@ func ok(text string) *mcp.CallToolResult {
 func addTool[In any](s *Server, t *mcp.Tool, summary func(In) (string, string), h func(context.Context, In) (string, error)) {
 	mcp.AddTool(s.srv, t, func(ctx context.Context, req *mcp.CallToolRequest, in In) (*mcp.CallToolResult, any, error) {
 		start := time.Now()
-		out, err := h(ctx, in)
-		sum, project := summary(in)
-		harness := "agent"
+		harness, session := "agent", ""
 		if req != nil && req.Session != nil {
+			session = req.Session.ID()
 			if p := req.Session.InitializeParams(); p != nil && p.ClientInfo != nil && p.ClientInfo.Name != "" {
 				harness = p.ClientInfo.Name
 			}
+		}
+		ctx = trace.WithOrigin(ctx, trace.Origin{Kind: trace.OriginMCP, Tool: t.Name, Harness: harness, Session: session})
+		out, err := h(ctx, in)
+		sum, project := summary(in)
+		if c, ok := any(in).(memoryIDs); ok && err == nil {
+			s.core.Observe(ctx, trace.Observation{Kind: trace.ObservedToolCall, Tool: t.Name, IDs: c.memoryIDs(), Session: session, Project: s.resolve(project)})
 		}
 		a := core.Activity{Source: "mcp", Harness: harness, Tool: t.Name, Summary: sum, Project: project, DurationMS: time.Since(start).Milliseconds()}
 		if err != nil {
@@ -102,6 +108,11 @@ func addTool[In any](s *Server, t *mcp.Tool, summary func(In) (string, string), 
 		return ok(out), nil, nil
 	})
 }
+
+// memoryIDs is implemented by tool arguments that name memories, so a call
+// can serve as evidence that a retrieved memory was used. A new tool opts
+// in by implementing it; addTool needs no change.
+type memoryIDs interface{ memoryIDs() []string }
 
 // boolp returns a pointer to b (annotation fields are optional booleans).
 func boolp(b bool) *bool { return &b }

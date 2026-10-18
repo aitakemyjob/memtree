@@ -12,6 +12,7 @@ import (
 	"github.com/aitakemyjob/memtree/internal/config"
 	"github.com/aitakemyjob/memtree/internal/events"
 	"github.com/aitakemyjob/memtree/internal/store"
+	"github.com/aitakemyjob/memtree/internal/trace"
 )
 
 // Event types published on the bus.
@@ -23,6 +24,7 @@ const (
 	EvCapture  = "capture" // hook traffic changed a capture session
 	EvMCP      = "mcp"
 	EvFocus    = "focus" // an agent asked the UI to show something
+	EvTrace    = "trace" // a retrieval was recorded or marked used; Data is {op, id}
 )
 
 // ErrAgentWritesDisabled is returned to agents when writes are switched off.
@@ -60,6 +62,13 @@ type Service struct {
 	Capture *store.Captures
 	Version string
 
+	// Trace records retrievals; Traces reads them back; Uses turns later
+	// agent activity into use evidence; Retention prunes old traces.
+	Trace     trace.Recorder
+	Traces    trace.Reader
+	Uses      *trace.UseTracker
+	Retention trace.Retention
+
 	mu       sync.Mutex
 	activity []Activity
 	nextID   int
@@ -91,10 +100,12 @@ func Open(cfg *config.Store, dbPath, version string, now func() time.Time) (*Ser
 		return nil, err
 	}
 	mem := store.NewMemory(db, lat)
-	return &Service{
+	s := &Service{
 		Config: cfg, Bus: events.NewBus(), DB: db, Lattice: lat, Memory: mem,
 		Capture: store.NewCaptures(db, mem), Version: version,
-	}, nil
+	}
+	s.wireTraces(store.NewTraces(db))
+	return s, nil
 }
 
 // Close closes the database.
@@ -157,11 +168,15 @@ func (s *Service) Maintain(ctx context.Context) (int, error) {
 	if err == nil && n > 0 {
 		s.emit(EvLattice, map[string]any{"op": "decay", "dropped": n})
 	}
+	if err == nil {
+		err = s.PruneTraces(ctx)
+	}
 	return n, err
 }
 
 // RunMaintenance calls Maintain on the configured interval until ctx ends.
 func (s *Service) RunMaintenance(ctx context.Context) {
+	_ = s.PruneTraces(ctx)
 	for {
 		h := s.Config.Get().MaintainHours
 		if h <= 0 {

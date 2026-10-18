@@ -11,6 +11,7 @@ import type { MemoryDraft } from '../lib/types';
 import { ActivationCurve } from './ActivationCurve';
 import { ScoreChips } from './MemoryCard';
 import { MemoryForm } from './MemoryForm';
+import { MemoryTracePanel } from './MemoryTracePanel';
 import { SupersedePicker } from './SupersedePicker';
 import { CopyButton, ErrorBox, Meter, Modal, Spinner, useAsync } from './ui';
 
@@ -170,6 +171,9 @@ function MemoryInspector({ id }: { id: string }) {
             final score = relevance × importance × activation × project boost (1.25 for the current project). Activation is ACT-R base-level decay over the access log ({record.accessLog.length} access{record.accessLog.length === 1 ? '' : 'es'}); age {hoursLabel(ex.data?.ageHours ?? 0)}.
           </div>
         </div>
+
+        <h3 className="insp-h">Retrieval history</h3>
+        <MemoryTracePanel memoryId={id} />
 
         <h3 className="insp-h">Activation decay</h3>
         {ceiling && <ActivationCurve record={record} tiers={ceiling} nowMs={nowMs} />}

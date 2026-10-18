@@ -56,6 +56,8 @@ type ActivationHit struct {
 	ItemID      string  `json:"itemId"`
 	Score       float64 `json:"score"`       // link weight × node activation
 	ViaCategory string  `json:"viaCategory"` // strongest contributing node
+	Seed        string  `json:"seed"`        // fired node that activation reached ViaCategory from
+	Depth       int     `json:"depth"`       // hops from Seed to ViaCategory
 	Summary     string  `json:"summary"`
 }
 
@@ -281,18 +283,20 @@ func (l *Lattice) Activate(ctx context.Context, seeds []string, opts ActivateOpt
 		id    string
 		act   float64
 		depth int
+		seed  string
 	}
 	var frontier []step
 	for _, s := range seeds {
 		if _, ok := graph.nodes[s]; ok && axisOK(s) {
-			frontier = append(frontier, step{s, seedWeight, 0})
+			frontier = append(frontier, step{s, seedWeight, 0, s})
 		}
 	}
 	if len(frontier) == 0 {
 		return []ActivationHit{}, nil
 	}
 	activation := map[string]float64{}
-	var order []string // deterministic iteration order
+	reached := map[string]step{} // the step that set each node's activation
+	var order []string           // deterministic iteration order
 	for len(frontier) > 0 {
 		var next []step
 		for _, s := range frontier {
@@ -305,12 +309,13 @@ func (l *Lattice) Activate(ctx context.Context, seeds []string, opts ActivateOpt
 				order = append(order, s.id)
 			}
 			activation[s.id] = decayed
+			reached[s.id] = s
 			if s.depth >= maxDepth {
 				continue
 			}
 			for _, n := range graph.neighbors(s.id) {
 				if axisOK(n) {
-					next = append(next, step{n, s.act * distanceDecay, s.depth + 1})
+					next = append(next, step{n, s.act * distanceDecay, s.depth + 1, s.seed})
 				}
 			}
 		}
@@ -345,7 +350,8 @@ func (l *Lattice) Activate(ctx context.Context, seeds []string, opts ActivateOpt
 				keys = append(keys, key)
 			}
 			if !ok || score > cur.Score {
-				best[key] = ActivationHit{ItemType: k.ItemType, ItemID: k.ItemID, Score: score, ViaCategory: cat, Summary: k.Summary}
+				best[key] = ActivationHit{ItemType: k.ItemType, ItemID: k.ItemID, Score: score, ViaCategory: cat,
+					Seed: reached[cat].seed, Depth: reached[cat].depth, Summary: k.Summary}
 			}
 		}
 	}

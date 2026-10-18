@@ -17,7 +17,7 @@ export interface ToastPlan {
 
 export interface EventEffects {
   /** Which data sets are stale and need a (debounced) refetch. */
-  stale: { memory?: boolean; lattice?: boolean; capture?: boolean };
+  stale: { memory?: boolean; lattice?: boolean; capture?: boolean; trace?: boolean };
   /** Whether app.state (counts) should be refreshed too. */
   refreshStats: boolean;
   activity?: Activity;
@@ -65,6 +65,8 @@ export function planEvent(ev: BusEvent, ctx: EventContext): EventEffects {
     }
     case 'lattice':
       return { ...none, stale: { lattice: true, memory: true }, refreshStats: true };
+    case 'trace':
+      return { ...none, stale: { trace: true } };
     case 'capture': {
       const session = isObj(d) && typeof d.session === 'string' ? d.session : '';
       const op = isObj(d) && typeof d.op === 'string' ? d.op : '';

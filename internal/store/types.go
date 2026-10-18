@@ -73,12 +73,18 @@ type MemoryRecord struct {
 	LatticePaths []string `json:"latticePaths"`
 }
 
-// ScoreDecomposition explains a retrieval score: final = bm25 × importance × activation.
+// ScoreDecomposition explains a retrieval score:
+// final = max(bm25, link) × importance × activation × project boost × both bonus.
+// BM25Normalized is the text route's relevance and LinkScore the lattice
+// route's (link weight × node activation); a route that did not find the
+// memory leaves its term zero. BothBonus is zero unless both routes agreed.
 type ScoreDecomposition struct {
 	BM25Normalized   float64 `json:"bm25Normalized"`
+	LinkScore        float64 `json:"linkScore,omitempty"`
 	ImportanceOffset float64 `json:"importanceOffset"`
 	Activation       float64 `json:"activation"`
 	ProjectBoost     float64 `json:"projectBoost"`
+	BothBonus        float64 `json:"bothBonus,omitempty"`
 	Final            float64 `json:"final"`
 }
 

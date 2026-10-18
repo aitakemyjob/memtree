@@ -37,7 +37,7 @@ describe('emphasisMap', () => {
   it('marks seeds, via categories and dims the rest while probing', () => {
     const m = emphasisMap(nodes, {
       seeds: ['project/architecture/db'],
-      hits: [{ itemType: 'memory', itemId: 'm1', score: 0.5, viaCategory: 'project/architecture', summary: '' }],
+      hits: [{ itemType: 'memory', itemId: 'm1', score: 0.5, viaCategory: 'project/architecture', seed: 'project/architecture/db', depth: 1, summary: '' }],
     });
     expect(m.get('project/architecture/db')).toBe('seed');
     expect(m.get('project/architecture')).toBe('via');

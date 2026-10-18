@@ -5,12 +5,16 @@ import { getTransport } from './transport';
 import type {
   Activity, ActivationHit, AppState, CaptureSession, CaptureTurn, CategoryLink, CategoryNode, Cluster, Explained, FireResult,
   HookResult, HooksStatus, ListArgs, MemoryRecord, ProjectCount, RecallArgs, RecallResult, Settings, UntaggedItem, UpdateArgs, LintReport, PathWarning,
+  DayCount, HeatRow, TraceEvent, TraceFilter,
 } from './types';
 
 /** Invokes a backend method through the active transport. */
 async function call<T>(method: string, args?: unknown): Promise<T> {
   return (await getTransport()).invoke<T>(method, args);
 }
+
+/** Fills a trace event's lists so renders never meet null. */
+const normTrace = (e: TraceEvent): TraceEvent => ({ ...e, matches: e.matches ?? [], hits: e.hits ?? [], uses: e.uses ?? [] });
 
 const list = async <T>(method: string, args?: unknown): Promise<T[]> => (await call<T[] | null>(method, args)) ?? [];
 
@@ -26,7 +30,7 @@ export const api = {
   getMemory: (id: string) => call<MemoryRecord>('memory.get', { id }),
   recall: async (a: RecallArgs): Promise<RecallResult> => {
     const r = await call<RecallResult | null>('memory.recall', a);
-    return { memories: r?.memories ?? [], categories: r?.categories ?? [] };
+    return { memories: r?.memories ?? [], categories: r?.categories ?? [], matches: r?.matches ?? [], traceId: r?.traceId };
   },
   saveMemory: (r: Partial<MemoryRecord>) => call<MemoryRecord>('memory.save', r),
   updateMemory: (a: UpdateArgs) => call<MemoryRecord>('memory.update', a),
@@ -65,6 +69,12 @@ export const api = {
   pendingCaptures: (a: { project?: string; allProjects?: boolean }) => list<CaptureSession>('captures.pending', a),
   turns: (session: string) => list<CaptureTurn>('captures.turns', { session }),
   closeCapture: (session: string) => call<{ ok: boolean }>('captures.close', { session }),
+
+  traces: async (f: TraceFilter = {}) => (await list<TraceEvent>('trace.list', f)).map(normTrace),
+  trace: async (id: string) => normTrace(await call<TraceEvent>('trace.get', { id })),
+  memoryTrace: async (id: string, limit = 50) => (await list<TraceEvent>('trace.forMemory', { id, limit })).map(normTrace),
+  heat: (f: TraceFilter = {}) => list<HeatRow>('trace.heat', f),
+  daily: (f: TraceFilter = {}) => list<DayCount>('trace.daily', f),
 
   hooksStatus: () => call<HooksStatus>('hooks.status'),
   installHooks: (harness: string, project: string, dryRun: boolean) => call<HookResult>('hooks.install', { harness, project, dryRun }),

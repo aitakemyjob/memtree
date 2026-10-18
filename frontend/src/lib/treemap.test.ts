@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildTree, heatFor, layoutMemories } from './treemap';
+import { buildTree, HEAT_MODES, heatContext, heatFor, layoutMemories, modeNeedsTraces } from './treemap';
 import type { MemoryRecord } from './types';
 
 const NOW = Date.parse('2026-03-01T12:00:00Z');
@@ -33,18 +33,40 @@ describe('buildTree', () => {
   });
 });
 
+describe('heat modes', () => {
+  it('colour retrieval and use from traces', () => {
+    const recs = [rec('a'), rec('b'), rec('c')];
+    const ctx = heatContext(recs, NOW, [
+      { memoryId: 'a', retrieved: 9, used: 3, lastRetrieved: iso(NOW) },
+      { memoryId: 'b', retrieved: 1, used: 1, lastRetrieved: iso(NOW) },
+      { memoryId: 'gone', retrieved: 99, used: 0, lastRetrieved: iso(NOW) },
+    ]);
+    expect(ctx.maxRetrieved).toBe(9);
+    expect(heatFor('retrieved', recs[0], ctx).heat).toBe(1);
+    expect(heatFor('retrieved', recs[1], ctx).heat).toBeCloseTo(Math.log1p(1) / Math.log1p(9));
+    expect(heatFor('retrieved', recs[2], ctx)).toEqual({ heat: 0, metric: 'retrieved 0×' });
+    expect(heatFor('used', recs[0], ctx).heat).toBeCloseTo(1 / 3);
+    expect(heatFor('used', recs[1], ctx).metric).toBe('used 1 of 1 retrievals');
+    expect(heatFor('used', recs[2], ctx).metric).toBe('never retrieved');
+  });
+  it('declare which modes need traces', () => {
+    const needs = (Object.keys(HEAT_MODES) as (keyof typeof HEAT_MODES)[]).filter(modeNeedsTraces);
+    expect(needs.sort()).toEqual(['retrieved', 'used']);
+  });
+});
+
 describe('heatFor', () => {
   it('maps activation, age and importance to 0..1', () => {
-    expect(heatFor('importance', rec('a', { importance: 1 }), NOW, 10).heat).toBe(0);
-    expect(heatFor('importance', rec('a', { importance: 2.5 }), NOW, 10).heat).toBe(1);
-    expect(heatFor('importance', rec('a', { importance: 1.5 }), NOW, 10).heat).toBeCloseTo(1 / 3);
-    const fresh = heatFor('age', rec('a', { createdAt: iso(NOW) }), NOW, 24 * 10).heat;
-    const old = heatFor('age', rec('a', { createdAt: iso(NOW - 10 * DAY) }), NOW, 24 * 10).heat;
+    expect(heatFor('importance', rec('a', { importance: 1 }), { ...heatContext([], NOW), maxAgeHours: 10 }).heat).toBe(0);
+    expect(heatFor('importance', rec('a', { importance: 2.5 }), { ...heatContext([], NOW), maxAgeHours: 10 }).heat).toBe(1);
+    expect(heatFor('importance', rec('a', { importance: 1.5 }), { ...heatContext([], NOW), maxAgeHours: 10 }).heat).toBeCloseTo(1 / 3);
+    const fresh = heatFor('age', rec('a', { createdAt: iso(NOW) }), { ...heatContext([], NOW), maxAgeHours: 24 * 10 }).heat;
+    const old = heatFor('age', rec('a', { createdAt: iso(NOW - 10 * DAY) }), { ...heatContext([], NOW), maxAgeHours: 24 * 10 }).heat;
     expect(fresh).toBe(1);
     expect(old).toBe(0);
-    const pinned = heatFor('activation', rec('a', { pinned: true }), NOW, 0).heat;
+    const pinned = heatFor('activation', rec('a', { pinned: true }), { ...heatContext([], NOW), maxAgeHours: 0 }).heat;
     expect(pinned).toBe(1);
-    const cold = heatFor('activation', rec('a', { accessLog: [] }), NOW, 0).heat;
+    const cold = heatFor('activation', rec('a', { accessLog: [] }), { ...heatContext([], NOW), maxAgeHours: 0 }).heat;
     expect(cold).toBe(0);
   });
 });

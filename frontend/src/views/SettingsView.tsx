@@ -158,6 +158,13 @@ export function SettingsView() {
                   <Field label="Maintenance interval" hint="How often background maintenance (link decay) runs.">
                     <NumberField label="Maintenance interval" value={draft.maintainHours} min={1} onChange={(n) => set('maintainHours', n)} suffix="hours" />
                   </Field>
+                  <h2 className="sec">Retrieval traces</h2>
+                  <ToggleRow title="Trace retrievals" on={draft.traceRetrievals} onChange={(v) => set('traceRetrievals', v)}>
+                    Record why each memory was recalled or injected, and whether the agent then used it, for the Traces view, retrieval history and Timeline heat. Stays on this machine.
+                  </ToggleRow>
+                  <Field label="Keep traces for" hint="Older traces are pruned during maintenance. 0 keeps them forever.">
+                    <NumberField label="Trace retention" value={draft.traceRetentionDays} min={0} onChange={(n) => set('traceRetentionDays', n)} suffix="days" />
+                  </Field>
                   <h2 className="sec">Consolidation tiers</h2>
                   <Field label="Episodic age gate" hint={`Episodic memories can be distilled after ${hoursLabel(draft.tiers.ageHoursToSemantic)}.`}>
                     <NumberField label="Episodic age gate" value={draft.tiers.ageHoursToSemantic} min={1} onChange={(n) => setTier('ageHoursToSemantic', n)} suffix="hours" />

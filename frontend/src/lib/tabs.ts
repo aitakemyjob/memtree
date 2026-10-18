@@ -1,6 +1,6 @@
 // Tab model: pure functions so they are trivially testable.
 
-export type TabKind = 'memories' | 'lattice' | 'timeline' | 'captures' | 'consolidation' | 'activity' | 'settings';
+export type TabKind = 'memories' | 'lattice' | 'timeline' | 'traces' | 'captures' | 'consolidation' | 'activity' | 'settings';
 
 export interface Tab {
   id: string;
@@ -16,6 +16,7 @@ export const VIEW_TITLES: Record<TabKind, string> = {
   memories: 'Memories',
   lattice: 'Lattice',
   timeline: 'Timeline',
+  traces: 'Traces',
   captures: 'Captures',
   consolidation: 'Consolidation',
   activity: 'Activity',

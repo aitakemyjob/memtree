@@ -37,6 +37,7 @@ and classifies, memtree stores, ranks, forgets gradually and shows its work.
 | **Hooks** | `memtree install claude-code` (also `codex`, `cursor`, `vscode`): a session-start anchor, quiet per-prompt recall, and transcript capture that agents later summarise. Hooks fail open and never block the agent. |
 | **MCP server** | 18 tools: `recall`, `memory_save`, `lattice_browse`, `captures_pending`, `memory_compress`… See [docs/MCP.md](docs/MCP.md). |
 | **A UI to inspect and edit** | Memories (edit, pin, supersede, archive, "why this score"), an interactive lattice graph, a timeline heatmap, the capture queue, consolidation, and a live activity feed of every agent and hook call. |
+| **Retrieval traces** | Every recall and hook injection is recorded with why each memory matched (the words that fired each category, the lattice path, the score factors) and whether the agent then used it (fetched, changed or cited it). Browse traces in the Traces view, see a memory's history and a per-day grid in the inspector, or colour the timeline by how often memories are retrieved and used. |
 | **Project scoping** | Memories belong to a repo (or are global). Recall prefers the current project and never leaks another one. |
 | **Yours** | Local SQLite file, loopback-only server, no network calls, MIT licensed. |
 
