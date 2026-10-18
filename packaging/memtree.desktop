@@ -1,6 +1,6 @@
 [Desktop Entry]
 Type=Application
-Name=memtree
+Name=MemTree
 GenericName=Code Explorer
 Comment=Explore code visually with your AI agent
 Exec=memtree

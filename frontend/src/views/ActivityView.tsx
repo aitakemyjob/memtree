@@ -60,7 +60,7 @@ export function ActivityView() {
 
       {feed.length === 0 ? (
         <Empty icon={<Radio size={28} />} title="No activity yet">
-          Nothing has talked to memtree since it started. Install hooks so your harness recalls memories on every prompt and records sessions, and connect MCP so agents can call the tools. Their calls show up here the moment they happen.
+          Nothing has talked to MemTree since it started. Install hooks so your harness recalls memories on every prompt and records sessions, and connect MCP so agents can call the tools. Their calls show up here the moment they happen.
           <div className="row" style={{ justifyContent: 'center', marginTop: 14 }}>
             <button className="btn primary" onClick={() => s.openView('settings', { section: 'hooks' })}><Webhook size={14} /> Install hooks</button>
             <button className="btn" onClick={() => s.setConnectOpen(true)}><Plug size={14} /> Connect MCP</button>

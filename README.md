@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="docs/assets/logo.png" alt="memtree" width="200" />
+  <img src="frontend/public/favicon.svg" alt="MemTree" width="160" />
 </p>
 
-<h1 align="center">memtree</h1>
+<h1 align="center">MemTree</h1>
 
 <p align="center">
   <b>Persistent memory for coding agents — that you can see, search and edit.</b>

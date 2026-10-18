@@ -18,7 +18,7 @@ export function TitleBar() {
     <header className={`titlebar ${isMac ? 'mac' : ''}`}>
       <div className="brand">
         <img className="brand-mark" src="./favicon.svg" alt="" draggable={false} />
-        memtree
+        MemTree
       </div>
 
       <div className="spacer" />

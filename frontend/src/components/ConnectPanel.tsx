@@ -22,7 +22,7 @@ export function ConnectPanel() {
           {mcp?.running ? (
             <>MCP server is live at <span className="mono">{url}</span></>
           ) : (
-            <span style={{ color: 'var(--err)' }}>{mcp?.error || 'The MCP server is not running.'} Change the port in Settings and restart memtree. The stdio bridge below still works once it is running.</span>
+            <span style={{ color: 'var(--err)' }}>{mcp?.error || 'The MCP server is not running.'} Change the port in Settings and restart MemTree. The stdio bridge below still works once it is running.</span>
           )}
         </div>
       </div>
@@ -36,7 +36,7 @@ export function ConnectPanel() {
       <div className="row muted" style={{ alignItems: 'flex-start' }}>
         <ShieldCheck size={16} style={{ color: 'var(--ok)', flex: 'none', marginTop: 2 }} />
         <span>
-          memtree listens on <span className="mono">127.0.0.1</span> only. It runs no model: agents summarise and classify, memtree stores and ranks.
+          MemTree listens on <span className="mono">127.0.0.1</span> only. It runs no model: agents summarise and classify, MemTree stores and ranks.
           Turn <b>Agent writes</b> off in Settings for a read-only recall setup.
         </span>
       </div>

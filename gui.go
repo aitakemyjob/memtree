@@ -99,7 +99,7 @@ func runGUI(port int) error {
 	desk := newDesktop(a.api, a.core)
 	bg := &options.RGBA{R: 4, G: 19, B: 28, A: 255} // SFC dark --bg
 	return wails.Run(&options.App{
-		Title:            "memtree",
+		Title:            "MemTree",
 		Width:            1480,
 		Height:           920,
 		MinWidth:         980,
@@ -115,7 +115,7 @@ func runGUI(port int) error {
 			TitleBar:             mac.TitleBarHiddenInset(),
 			Appearance:           mac.DefaultAppearance,
 			WebviewIsTransparent: false,
-			About:                &mac.AboutInfo{Title: "memtree", Message: "Persistent memory for coding agents. " + version},
+			About:                &mac.AboutInfo{Title: "MemTree", Message: "Persistent memory for coding agents. " + version},
 		},
 		Windows: &windows.Options{
 			WebviewIsTransparent: false,

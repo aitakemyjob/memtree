@@ -71,7 +71,7 @@ export function MemoryForm({ draft, onChange, isNew }: { draft: MemoryDraft; onC
         <PathEditor paths={draft.latticePaths} onChange={(p) => set('latticePaths', p)} />
       </Field>
 
-      <Field label="Keywords" hint="Used by text search. Leave empty to have memtree extract them.">
+      <Field label="Keywords" hint="Used by text search. Leave empty to have MemTree extract them.">
         <StringList label="keyword" values={draft.keywords} onChange={(v) => set('keywords', v)} placeholder="Add a keyword and press Enter" />
       </Field>
 

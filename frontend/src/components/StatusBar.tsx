@@ -32,7 +32,7 @@ export function StatusBar() {
           {writes ? <Shield size={12} /> : <ShieldOff size={12} style={{ color: 'var(--warn)' }} />}
           {writes ? 'agent writes on' : <span style={{ color: 'var(--warn)' }}>agents read-only</span>}
         </span>
-        <span className="item">memtree {s.app?.version ? (s.app.version.startsWith('v') ? s.app.version : `v${s.app.version}`) : ''}</span>
+        <span className="item">MemTree {s.app?.version ? (s.app.version.startsWith('v') ? s.app.version : `v${s.app.version}`) : ''}</span>
       </div>
     </footer>
   );

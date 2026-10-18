@@ -8,13 +8,13 @@
   "frontend:dev:serverUrl": "auto",
   "wailsjsdir": "",
   "author": {
-    "name": "memtree contributors"
+    "name": "MemTree contributors"
   },
   "info": {
-    "companyName": "memtree",
-    "productName": "memtree",
+    "companyName": "MemTree",
+    "productName": "MemTree",
     "productVersion": "0.1.0",
-    "copyright": "Copyright © memtree contributors",
+    "copyright": "Copyright © MemTree contributors",
     "comments": "Persistent memory for coding agents, with an MCP server, hooks and a UI to inspect and edit it"
   }
 }

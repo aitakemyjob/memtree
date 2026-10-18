@@ -2,7 +2,7 @@ import { Plug, Plus, Wrench } from 'lucide-react';
 import { useStore } from '../lib/store';
 
 /**
- * Shown when memtree holds no memories yet: the three steps that get an
+ * Shown when MemTree holds no memories yet: the three steps that get an
  * agent writing memory, each with a button that jumps to the right place.
  */
 export function Welcome() {
@@ -12,7 +12,7 @@ export function Welcome() {
       <img src="./favicon.svg" alt="" width={44} height={44} />
       <h1>Give your coding agents a memory</h1>
       <p className="muted">
-        memtree keeps what your agents learn across sessions, files it on a category lattice, and lets it fade the way real memory does. You can read, correct and organise all of it here.
+        MemTree keeps what your agents learn across sessions, files it on a category lattice, and lets it fade the way real memory does. You can read, correct and organise all of it here.
       </p>
       <ol className="steps">
         <li>

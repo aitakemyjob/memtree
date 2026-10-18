@@ -193,7 +193,7 @@ export function SettingsView() {
                   <h1>Connect (MCP)</h1>
                   <ConnectPanel />
                   <h2 className="sec">Port</h2>
-                  <Field label="MCP and UI port" hint="Loopback port for MCP, the API and this page. Changing it takes effect after restarting memtree; clients need their snippets updated.">
+                  <Field label="MCP and UI port" hint="Loopback port for MCP, the API and this page. Changing it takes effect after restarting MemTree; clients need their snippets updated.">
                     <NumberField label="MCP and UI port" value={draft.mcpPort} min={1024} max={65535} onChange={(n) => set('mcpPort', n)} />
                   </Field>
                 </>
@@ -210,7 +210,7 @@ export function SettingsView() {
                     <dt>mcp</dt><dd>{s.app?.mcp.running ? s.app.mcp.url : s.app?.mcp.error || 'not running'}</dd>
                     <dt>axis roots</dt><dd>{(s.app?.axisRoots ?? []).join(', ')}</dd>
                   </dl>
-                  <p className="muted">memtree runs no model. Agents summarise and classify; memtree stores, ranks, forgets gradually, and shows it all here.</p>
+                  <p className="muted">MemTree runs no model. Agents summarise and classify; MemTree stores, ranks, forgets gradually, and shows it all here.</p>
                 </>
               )}
             </div>
@@ -224,7 +224,7 @@ export function SettingsView() {
               <button className="btn sm" onClick={() => setDraft(saved)}>Revert</button>
               <button className="btn primary sm" disabled={problems.length > 0} onClick={async () => {
                 const ok = await s.saveSettings(draft);
-                if (ok) s.toast({ kind: 'ok', title: 'Settings saved', body: needsRestart(saved, draft) ? 'Restart memtree to use the new port.' : undefined });
+                if (ok) s.toast({ kind: 'ok', title: 'Settings saved', body: needsRestart(saved, draft) ? 'Restart MemTree to use the new port.' : undefined });
               }}>
                 Save settings
               </button>

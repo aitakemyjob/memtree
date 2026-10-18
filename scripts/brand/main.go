@@ -1,9 +1,11 @@
 // Command brand turns the source logo into app assets:
 //
 //	build/appicon.png             1024×1024 (Wails derives .icns/.ico from it)
-//	frontend/public/logo.png      256×256  (title bar, welcome screen)
+//	frontend/public/logo.png      256×256
 //	frontend/public/favicon.png   64×64
-//	docs/assets/logo.png          512×512  (README)
+//
+// The tree mark in the title bar, welcome screen and README is the
+// hand-drawn frontend/public/favicon.svg, not generated from this source.
 //
 // The source may have a fake "transparency" checkerboard baked in; every
 // light, neutral pixel connected to the image border is treated as
@@ -39,7 +41,6 @@ func main() {
 		{"build/appicon.png", 1024},
 		{"frontend/public/logo.png", 256},
 		{"frontend/public/favicon.png", 64},
-		{"docs/assets/logo.png", 512},
 	} {
 		if err := save(out.path, resize(cut, out.size)); err != nil {
 			log.Fatal(err)
