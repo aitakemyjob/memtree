@@ -13,6 +13,7 @@
   <a href="https://github.com/aitakemyjob/memtree/releases/latest"><img src="https://img.shields.io/github/v/release/aitakemyjob/memtree?sort=semver" alt="Latest release" /></a>
   <img src="https://img.shields.io/badge/platforms-macOS%20%7C%20Windows%20%7C%20Linux-266970" alt="Platforms" />
   <a href="LICENSE"><img src="https://img.shields.io/github/license/aitakemyjob/memtree" alt="MIT license" /></a>
+  <a href="https://scorecard.dev/viewer/?uri=github.com/aitakemyjob/memtree"><img src="https://api.scorecard.dev/projects/github.com/aitakemyjob/memtree/badge" alt="OpenSSF Scorecard" /></a>
 </p>
 
 memtree is a local service that gives Claude Code, Codex, Cursor, VS Code and
@@ -226,8 +227,11 @@ build keeps them light.
 
 From a clean `main`: `make release VERSION=v0.2.0`. That runs the tests, then
 tags and pushes; the [Release workflow](.github/workflows/release.yml) builds
-every platform with the scripts above, writes `checksums.txt` and publishes a
-GitHub release (`v1.0.0-rc.1`-style tags become pre-releases). To sign and
+every platform with the scripts above, writes `checksums.txt`, an SPDX SBOM and
+signed build provenance, and publishes a GitHub release (`v1.0.0-rc.1`-style
+tags become pre-releases). Anyone can check that a download was built by this
+repository's release workflow with
+`gh attestation verify <file> --repo aitakemyjob/memtree`. To sign and
 notarize macOS builds add the `MACOS_CODESIGN_IDENTITY`, `APPLE_ID`,
 `APPLE_TEAM_ID` and `APPLE_APP_PASSWORD` repository secrets.
 

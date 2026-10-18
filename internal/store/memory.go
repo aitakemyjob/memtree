@@ -318,7 +318,7 @@ func scopeSQL(q Query) (string, []any) {
 func matchExpr(text string) string {
 	var terms []string
 	for _, t := range strings.FieldsFunc(strings.ToLower(text), func(r rune) bool {
-		return !(r >= 'a' && r <= 'z' || r >= '0' && r <= '9')
+		return (r < 'a' || r > 'z') && (r < '0' || r > '9')
 	}) {
 		if len(t) > 1 {
 			terms = append(terms, `"`+t+`"`)

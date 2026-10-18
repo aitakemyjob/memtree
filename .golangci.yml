@@ -1,0 +1,54 @@
+# golangci-lint v2 configuration. Run locally with `make lint`.
+version: "2"
+
+run:
+  build-tags: [nogui]
+
+linters:
+  default: standard # errcheck, govet, ineffassign, staticcheck, unused
+  enable:
+    - misspell
+    - bodyclose
+    - gosec
+  settings:
+    errcheck:
+      # Errors from these are either impossible or not actionable: closing
+      # read-only files, writing an HTTP response the client already
+      # abandoned, draining a pipe.
+      exclude-functions:
+        - (io.Closer).Close
+        - (*os.File).Close
+        - (*io.PipeWriter).Close
+        - fmt.Fprint
+        - fmt.Fprintf
+        - fmt.Fprintln
+        - (*encoding/json.Encoder).Encode
+        - io.Copy
+        - (*flag.FlagSet).Parse
+        - (github.com/modelcontextprotocol/go-sdk/mcp.Connection).Close
+        - (*github.com/modelcontextprotocol/go-sdk/mcp.ClientSession).Close
+        - (*database/sql.Rows).Close
+        - (*database/sql.DB).Close
+        - (net.Conn).Close
+        - (*github.com/aitakemyjob/memtree/internal/core.Service).Close
+        - (*github.com/aitakemyjob/memtree/internal/store.DB).Close
+    gosec:
+      excludes:
+        - G104 # duplicates errcheck, which has the exclusions above
+        - G202 # WHERE clauses are joined from fixed fragments; values are always bound parameters
+        - G204 # the hook installer runs the harness's own CLI (claude mcp add ...)
+        - G304 # paths are memtree's own config/database or the harness config files it installs into
+        - G306 # config and cache files are not secrets
+        - G301 # cache directories are user-owned
+  exclusions:
+    rules:
+      # Tests call setup helpers without checking errors; a failed step
+      # shows up in the assertions that follow.
+      - path: _test\.go
+        linters: [gosec, bodyclose, errcheck]
+      - path: scripts/
+        linters: [gosec]
+
+formatters:
+  enable:
+    - gofmt
