@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/aitakemyjob/memtree/internal/store"
+	"github.com/aitakemyjob/memtree/internal/trace"
 )
 
 // RecallInput is a deliberate, agent- or human-initiated memory search.
@@ -26,14 +27,18 @@ type RecallInput struct {
 type Recalled struct {
 	Record store.MemoryRecord       `json:"record"`
 	Score  store.ScoreDecomposition `json:"score"`
-	Source string                   `json:"source"`        // text | lattice | both
-	Via    string                   `json:"via,omitempty"` // lattice category that surfaced it
+	Source string                   `json:"source"`         // text | lattice | both
+	Via    string                   `json:"via,omitempty"`  // lattice category that surfaced it
+	Seed   string                   `json:"seed,omitempty"` // fired category the lattice path started at
+	Depth  int                      `json:"depth,omitempty"`
 }
 
 // RecallResult is the merged outcome of text search and lattice activation.
 type RecallResult struct {
-	Memories   []Recalled `json:"memories"`
-	Categories []string   `json:"categories"` // lattice nodes the query fired
+	Memories   []Recalled    `json:"memories"`
+	Categories []string      `json:"categories"` // lattice nodes the query fired
+	Matches    []trace.Match `json:"matches"`    // which query token fired which node
+	TraceID    string        `json:"traceId,omitempty"`
 }
 
 // bothBonus lifts a memory found by both text and lattice: two independent
@@ -58,10 +63,11 @@ func (s *Service) Recall(ctx context.Context, in RecallInput) (RecallResult, err
 	if err != nil {
 		return RecallResult{}, err
 	}
-	seeds, err := s.Lattice.SignalCategories(ctx, in.Query)
+	matches, err := s.Lattice.SignalMatches(ctx, in.Query)
 	if err != nil {
 		return RecallResult{}, err
 	}
+	seeds := store.MatchedCategories(matches)
 	merged := map[string]*Recalled{}
 	var order []string
 	for _, h := range text {
@@ -86,13 +92,14 @@ func (s *Service) Recall(ctx context.Context, in RecallInput) (RecallResult, err
 			}
 			final := h.Score * r.Importance * act * boost
 			if cur, ok := merged[r.ID]; ok {
-				cur.Source, cur.Via = "both", h.ViaCategory
+				cur.Source, cur.Via, cur.Seed, cur.Depth = "both", h.ViaCategory, h.Seed, h.Depth
+				cur.Score.LinkScore, cur.Score.BothBonus = h.Score, bothBonus
 				cur.Score.Final = max(cur.Score.Final, final) * bothBonus
 				continue
 			}
 			merged[r.ID] = &Recalled{
-				Record: r, Source: "lattice", Via: h.ViaCategory,
-				Score: store.ScoreDecomposition{BM25Normalized: h.Score, ImportanceOffset: r.Importance, Activation: act, ProjectBoost: boost, Final: final},
+				Record: r, Source: "lattice", Via: h.ViaCategory, Seed: h.Seed, Depth: h.Depth,
+				Score: store.ScoreDecomposition{LinkScore: h.Score, ImportanceOffset: r.Importance, Activation: act, ProjectBoost: boost, Final: final},
 			}
 			order = append(order, r.ID)
 		}
@@ -114,7 +121,8 @@ func (s *Service) Recall(ctx context.Context, in RecallInput) (RecallResult, err
 			return RecallResult{}, err
 		}
 	}
-	return RecallResult{Memories: out, Categories: nonNil(seeds)}, nil
+	id := s.recordRetrieval(ctx, in.Project, in.Query, matches, hitsFromRecall(out), in.Reinforce && len(out) > 0)
+	return RecallResult{Memories: out, Categories: nonNil(seeds), Matches: matches, TraceID: id}, nil
 }
 
 // visible applies a query's scope and lifecycle filters to a record fetched
@@ -140,16 +148,22 @@ func visible(r store.MemoryRecord, q store.Query) bool {
 
 // SurfaceItem is one note a hook injects.
 type SurfaceItem struct {
-	ID      string  `json:"id"`
-	Summary string  `json:"summary"`
-	Why     string  `json:"why"`
-	Score   float64 `json:"score"`
+	ID      string                   `json:"id"`
+	Summary string                   `json:"summary"`
+	Why     string                   `json:"why"`
+	Score   float64                  `json:"score"`
+	Route   string                   `json:"route"`          // text | lattice | both
+	Via     string                   `json:"via,omitempty"`  // lattice category
+	Seed    string                   `json:"seed,omitempty"` // fired category the path started at
+	Depth   int                      `json:"depth,omitempty"`
+	Factors store.ScoreDecomposition `json:"factors"` // the terms of the winning route's Score
 }
 
 // Surface is what a hook injects for a prompt.
 type Surface struct {
-	Items []SurfaceItem `json:"items"`
-	Text  string        `json:"text"` // ready to inject; "" means stay quiet
+	Items   []SurfaceItem `json:"items"`
+	Text    string        `json:"text"` // ready to inject; "" means stay quiet
+	TraceID string        `json:"traceId,omitempty"`
 }
 
 // surfaceTextCap limits text-route hits so the lattice route keeps room.
@@ -172,8 +186,12 @@ func (s *Service) SurfaceForPrompt(ctx context.Context, prompt, project string) 
 	add := func(it SurfaceItem) {
 		if cur, ok := merged[it.ID]; ok {
 			if it.Score > cur.Score {
-				cur.Score = it.Score
+				cur.Score, cur.Factors = it.Score, it.Factors
 			}
+			if it.Via != "" {
+				cur.Via, cur.Seed, cur.Depth = it.Via, it.Seed, it.Depth
+			}
+			cur.Route = trace.RouteBoth
 			merged[it.ID] = cur
 			return
 		}
@@ -188,12 +206,14 @@ func (s *Service) SurfaceForPrompt(ctx context.Context, prompt, project string) 
 		if h.Record.Kind == store.KindCapture {
 			continue // raw captures are noise until summarised
 		}
-		add(SurfaceItem{ID: h.Record.ID, Summary: describe(h.Record, s.DB.Now()), Why: "matches your wording", Score: h.Score.Final})
+		add(SurfaceItem{ID: h.Record.ID, Summary: describe(h.Record, s.DB.Now()), Why: "matches your wording", Score: h.Score.Final,
+			Route: trace.RouteText, Factors: h.Score})
 	}
-	seeds, err := s.Lattice.SignalCategories(ctx, prompt)
+	matches, err := s.Lattice.SignalMatches(ctx, prompt)
 	if err != nil {
 		return Surface{}, err
 	}
+	seeds := store.MatchedCategories(matches)
 	if len(seeds) > 0 {
 		hits, err := s.Lattice.Activate(ctx, seeds, store.ActivateOptions{Threshold: set.SurfaceThreshold, Max: set.MaxSurface, ItemTypes: []string{store.ItemMemory}})
 		if err != nil {
@@ -204,7 +224,12 @@ func (s *Service) SurfaceForPrompt(ctx context.Context, prompt, project string) 
 			if err != nil || !visible(r, q) || r.Kind == store.KindCapture {
 				continue
 			}
-			add(SurfaceItem{ID: r.ID, Summary: describe(r, s.DB.Now()), Why: "filed under " + h.ViaCategory, Score: h.Score * r.Importance})
+			// Surfacing scores the lattice route on link strength and
+			// importance only; the factors say so rather than borrowing recall's.
+			score := h.Score * r.Importance
+			add(SurfaceItem{ID: r.ID, Summary: describe(r, s.DB.Now()), Why: "filed under " + h.ViaCategory, Score: score,
+				Route: trace.RouteLattice, Via: h.ViaCategory, Seed: h.Seed, Depth: h.Depth,
+				Factors: store.ScoreDecomposition{LinkScore: h.Score, ImportanceOffset: r.Importance, Activation: 1, ProjectBoost: 1, Final: score}})
 		}
 	}
 	items := make([]SurfaceItem, 0, len(order))
@@ -215,7 +240,8 @@ func (s *Service) SurfaceForPrompt(ctx context.Context, prompt, project string) 
 	if set.MaxSurface > 0 && len(items) > set.MaxSurface {
 		items = items[:set.MaxSurface]
 	}
-	return Surface{Items: items, Text: renderSurface(items)}, nil
+	id := s.recordRetrieval(ctx, project, prompt, matches, hitsFromSurface(items), false)
+	return Surface{Items: items, Text: renderSurface(items), TraceID: id}, nil
 }
 
 // renderSurface formats surfaced notes as factual, caveated context lines.
@@ -290,12 +316,15 @@ func (s *Service) AnchorFor(ctx context.Context, project, currentSession string)
 	sort.SliceStable(live, func(i, j int) bool { return live[i].CreatedAt.After(live[j].CreatedAt) })
 	now := s.DB.Now()
 	var b strings.Builder
+	var injected []anchorHit
 	b.WriteString("memtree is connected: persistent memory for this project.\n")
 	if len(live) > 0 {
 		fmt.Fprintf(&b, "Last session notes — %s\n", describe(live[0], now))
+		injected = append(injected, anchorHit{live[0], "latest"})
 		for _, r := range live[1:] {
 			if r.Importance >= store.ImportanceLesson {
 				fmt.Fprintf(&b, "Landmark — %s\n", describe(r, now))
+				injected = append(injected, anchorHit{r, "landmark"})
 				break
 			}
 		}
@@ -305,7 +334,9 @@ func (s *Service) AnchorFor(ctx context.Context, project, currentSession string)
 			break
 		}
 		fmt.Fprintf(&b, "Pinned — %s\n", describe(r, now))
+		injected = append(injected, anchorHit{r, "pinned"})
 	}
+	s.recordRetrieval(ctx, project, "", nil, hitsFromAnchor(injected), false)
 	loops := openLoops(live, 5)
 	if len(loops) > 0 {
 		b.WriteString("Open loops:\n")
@@ -362,9 +393,14 @@ func openLoops(recs []store.MemoryRecord, max int) []string {
 // categories and the live memories that would surface, with scores. Retired
 // (superseded or archived) memories never appear, matching recall.
 func (s *Service) Probe(ctx context.Context, text string, max int) ([]string, []store.ActivationHit, error) {
-	seeds, err := s.Lattice.SignalCategories(ctx, text)
-	if err != nil || len(seeds) == 0 {
-		return nonNil(seeds), []store.ActivationHit{}, err
+	matches, err := s.Lattice.SignalMatches(ctx, text)
+	if err != nil {
+		return nil, nil, err
+	}
+	seeds := store.MatchedCategories(matches)
+	if len(seeds) == 0 {
+		s.recordRetrieval(ctx, "", text, matches, nil, false)
+		return seeds, []store.ActivationHit{}, nil
 	}
 	hits, err := s.Lattice.Activate(ctx, seeds, store.ActivateOptions{Threshold: 0.01, Max: max * 3, ItemTypes: []string{store.ItemMemory}})
 	if err != nil {
@@ -381,5 +417,6 @@ func (s *Service) Probe(ctx context.Context, text string, max int) ([]string, []
 			break
 		}
 	}
+	s.recordRetrieval(ctx, "", text, matches, hitsFromProbe(live), false)
 	return seeds, live, nil
 }

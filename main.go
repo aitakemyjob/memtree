@@ -31,6 +31,7 @@ import (
 	"github.com/aitakemyjob/memtree/internal/core"
 	"github.com/aitakemyjob/memtree/internal/hooks"
 	"github.com/aitakemyjob/memtree/internal/server"
+	"github.com/aitakemyjob/memtree/internal/trace"
 )
 
 //go:embed all:frontend/dist
@@ -238,7 +239,8 @@ func runRecall(query, project string, all bool) error {
 	if project == "" {
 		project, _ = os.Getwd()
 	}
-	res, err := a.core.Recall(context.Background(), core.RecallInput{Query: query, Project: core.ResolveProject(project), AllProjects: all, Limit: 8})
+	ctx := trace.WithOrigin(context.Background(), trace.Origin{Kind: trace.OriginCLI, Tool: "recall", Harness: "memtree"})
+	res, err := a.core.Recall(ctx, core.RecallInput{Query: query, Project: core.ResolveProject(project), AllProjects: all, Limit: 8})
 	if err != nil {
 		return err
 	}

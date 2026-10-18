@@ -125,6 +125,48 @@ CREATE TABLE IF NOT EXISTS capture_turns (
 	at TEXT NOT NULL,
 	PRIMARY KEY (session_id, seq)
 );
+CREATE TABLE IF NOT EXISTS retrieval_events (
+	id TEXT PRIMARY KEY,
+	at TEXT NOT NULL,
+	origin TEXT NOT NULL,
+	tool TEXT NOT NULL DEFAULT '',
+	harness TEXT NOT NULL DEFAULT '',
+	session_id TEXT NOT NULL DEFAULT '',
+	project TEXT NOT NULL DEFAULT '',
+	query TEXT NOT NULL DEFAULT '',
+	matches TEXT NOT NULL DEFAULT '[]',
+	reinforced INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_retrieval_at ON retrieval_events(at);
+CREATE INDEX IF NOT EXISTS idx_retrieval_session ON retrieval_events(session_id, at);
+CREATE INDEX IF NOT EXISTS idx_retrieval_project ON retrieval_events(project, at);
+CREATE TABLE IF NOT EXISTS retrieval_hits (
+	event_id TEXT NOT NULL,
+	memory_id TEXT NOT NULL,
+	rank INTEGER NOT NULL,
+	route TEXT NOT NULL,
+	via TEXT NOT NULL DEFAULT '',
+	seed TEXT NOT NULL DEFAULT '',
+	depth INTEGER NOT NULL DEFAULT 0,
+	text_score REAL NOT NULL DEFAULT 0,
+	link_score REAL NOT NULL DEFAULT 0,
+	importance REAL NOT NULL DEFAULT 0,
+	activation REAL NOT NULL DEFAULT 0,
+	project_boost REAL NOT NULL DEFAULT 1,
+	both_bonus REAL NOT NULL DEFAULT 1,
+	final REAL NOT NULL DEFAULT 0,
+	PRIMARY KEY (event_id, memory_id)
+);
+CREATE INDEX IF NOT EXISTS idx_retrieval_hits_memory ON retrieval_hits(memory_id);
+CREATE TABLE IF NOT EXISTS retrieval_use (
+	event_id TEXT NOT NULL,
+	memory_id TEXT NOT NULL,
+	evidence TEXT NOT NULL,
+	detail TEXT NOT NULL DEFAULT '',
+	at TEXT NOT NULL,
+	PRIMARY KEY (event_id, memory_id, evidence)
+);
+CREATE INDEX IF NOT EXISTS idx_retrieval_use_memory ON retrieval_use(memory_id);
 `)
 	return err
 }

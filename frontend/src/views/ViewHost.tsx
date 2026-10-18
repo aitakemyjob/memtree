@@ -7,11 +7,13 @@ import { LatticeView } from './LatticeView';
 import { MemoriesView } from './MemoriesView';
 import { SettingsView } from './SettingsView';
 import { TimelineView } from './TimelineView';
+import { TracesView } from './TracesView';
 
 const views: Record<TabKind, () => React.JSX.Element | null> = {
   memories: MemoriesView,
   lattice: LatticeView,
   timeline: TimelineView,
+  traces: TracesView,
   captures: CapturesView,
   consolidation: ConsolidationView,
   activity: ActivityView,

@@ -39,6 +39,11 @@ type Settings struct {
 	LinkHalfLifeDays float64 `json:"linkHalfLifeDays"`
 	// MaintainHours is how often background maintenance (link decay) runs.
 	MaintainHours float64 `json:"maintainHours"`
+	// TraceRetrievals records why each memory was retrieved and whether it
+	// was then used, for the Traces view and retrieval heat.
+	TraceRetrievals bool `json:"traceRetrievals"`
+	// TraceRetentionDays is how long retrieval traces are kept (0 = forever).
+	TraceRetentionDays int `json:"traceRetentionDays"`
 	// Tiers controls when memories become candidates for compression.
 	Tiers store.TierConfig `json:"tiers"`
 }
@@ -50,6 +55,7 @@ func Default() Settings {
 		AgentWrites: true, CaptureHooks: true,
 		SurfaceThreshold: 0.25, MaxSurface: 3,
 		LinkHalfLifeDays: 30, MaintainHours: 12,
+		TraceRetrievals: true, TraceRetentionDays: 90,
 		Tiers: store.DefaultTierConfig(),
 	}
 }
@@ -176,6 +182,9 @@ func (s *Store) Update(fn func(*Settings)) (Settings, error) {
 	}
 	if next.SurfaceThreshold < 0 || next.SurfaceThreshold > 1 {
 		return s.file.Settings, errors.New("surface threshold must be between 0 and 1")
+	}
+	if next.TraceRetentionDays < 0 {
+		return s.file.Settings, errors.New("trace retention must be 0 (keep forever) or more days")
 	}
 	t := next.Tiers
 	if t.AgeHoursToCompact < t.AgeHoursToSemantic || t.ActivationCeilingCompress < 0 || t.ActivationCeilingCompress > 1 || t.MinClusterSize < 1 {

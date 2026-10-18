@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/aitakemyjob/memtree/internal/core"
+	"github.com/aitakemyjob/memtree/internal/trace"
 )
 
 // Supported harness names.
@@ -78,6 +79,7 @@ func (m *Manager) Handle(ctx context.Context, harness, eventName string, payload
 		return "", err
 	}
 	project := core.ResolveProject(ev.Cwd)
+	ctx = trace.WithOrigin(ctx, trace.Origin{Kind: trace.OriginHook, Tool: ev.Name, Harness: harness, Session: ev.Session})
 	out, summary, err := m.dispatch(ctx, harness, ev, project)
 	m.record(harness, ev.Name, project, err, start, summary)
 	return out, err
@@ -127,6 +129,7 @@ func (m *Manager) dispatch(ctx context.Context, harness string, ev event, projec
 		if err := m.core.CaptureTurn(ctx, harness, ev.Session, project, "assistant", ev.Text); err != nil {
 			return "", "capture failed", err
 		}
+		m.core.Observe(ctx, trace.Observation{Kind: trace.ObservedAssistantTurn, Text: ev.Text, Session: ev.Session, Project: project})
 		// Checkpoint every turn: SessionEnd is not guaranteed (a killed
 		// terminal never fires it, VS Code has none), so the raw capture is
 		// refreshed now and simply reopened by the next turn.

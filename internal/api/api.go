@@ -14,6 +14,7 @@ import (
 	"github.com/aitakemyjob/memtree/internal/config"
 	"github.com/aitakemyjob/memtree/internal/core"
 	"github.com/aitakemyjob/memtree/internal/store"
+	"github.com/aitakemyjob/memtree/internal/trace"
 )
 
 type handler func(ctx context.Context, raw json.RawMessage) (any, error)
@@ -74,6 +75,7 @@ func New(c *core.Service) *API {
 	a.registerLattice()
 	a.registerOps()
 	a.registerHooks()
+	a.registerTrace()
 	return a
 }
 
@@ -83,6 +85,9 @@ func (a *API) Invoke(ctx context.Context, name string, args json.RawMessage) (js
 	if !ok {
 		return nil, fmt.Errorf("unknown method %q", name)
 	}
+	// Retrievals made through the API are the UI's own; a relayed hook
+	// replaces this with its own origin.
+	ctx = trace.WithOrigin(ctx, trace.Origin{Kind: trace.OriginUI, Tool: name, Harness: "memtree"})
 	out, err := h(ctx, args)
 	if err != nil {
 		return nil, err

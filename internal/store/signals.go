@@ -5,6 +5,8 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+
+	"github.com/aitakemyjob/memtree/internal/trace"
 )
 
 // AxisSeeds are the top-level shape of the lattice. They are created at
@@ -77,37 +79,55 @@ func Keywords(text string) []string {
 // in either direction. No content or no match fires nothing, which keeps an
 // off-topic prompt quiet. The result is sorted for determinism.
 func (l *Lattice) SignalCategories(ctx context.Context, text string) ([]string, error) {
+	matches, err := l.SignalMatches(ctx, text)
+	if err != nil {
+		return nil, err
+	}
+	return MatchedCategories(matches), nil
+}
+
+// SignalMatches is SignalCategories with its reasons: every token that
+// fired each node, sorted by node then token.
+func (l *Lattice) SignalMatches(ctx context.Context, text string) ([]trace.Match, error) {
 	tokens := Keywords(text)
 	if len(tokens) == 0 {
-		return []string{}, nil
+		return []trace.Match{}, nil
 	}
-	rows, err := l.db.sql.QueryContext(ctx, `SELECT id, label FROM category_nodes`)
+	rows, err := l.db.sql.QueryContext(ctx, `SELECT id, label FROM category_nodes ORDER BY id`)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	hits := map[string]bool{}
+	out := []trace.Match{}
 	for rows.Next() {
 		var id, label string
 		if err := rows.Scan(&id, &label); err != nil {
 			return nil, err
 		}
+		var fired []string
 		for _, t := range tokens {
 			if tokenMatchesLabel(t, label) {
-				hits[id] = true
-				break
+				fired = append(fired, t)
 			}
 		}
+		sort.Strings(fired)
+		for _, t := range fired {
+			out = append(out, trace.Match{Token: t, Category: id})
+		}
 	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	out := make([]string, 0, len(hits))
-	for id := range hits {
-		out = append(out, id)
+	return out, rows.Err()
+}
+
+// MatchedCategories returns the distinct categories of matches, sorted.
+func MatchedCategories(matches []trace.Match) []string {
+	out := []string{}
+	for _, m := range matches {
+		if len(out) == 0 || out[len(out)-1] != m.Category {
+			out = append(out, m.Category)
+		}
 	}
 	sort.Strings(out)
-	return out, nil
+	return out
 }
 
 // tokenMatchesLabel matches a token to a node label exactly or by a ≥4-character containment.

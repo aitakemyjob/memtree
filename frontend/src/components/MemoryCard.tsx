@@ -1,24 +1,29 @@
 import { Archive, GitMerge, Pin } from 'lucide-react';
 import { memoryActivation } from '../lib/activation';
 import { fixed, importanceName, kindColor, projectName, relTime, truncate } from '../lib/format';
+import { factorsFromScore, factorTerms, type FactorTerm } from '../lib/traceExplain';
 import type { MemoryRecord, Recalled } from '../lib/types';
 import { Meter } from './ui';
 
-/** The four factors of a recall score and their product. */
-export function ScoreChips({ score }: { score: Recalled['score'] }) {
+/** Labelled score terms joined by ×, ending in their product. */
+export function FactorChips({ terms, final }: { terms: FactorTerm[]; final: number }) {
   return (
     <div className="score-chips" aria-label="Score decomposition">
-      <span className="chip" title="Text relevance (normalised BM25) or lattice link weight x node activation">relevance {fixed(score.bm25Normalized)}</span>
-      <span className="op">×</span>
-      <span className="chip" title="Importance multiplier: 1 routine, 1.5 decision, 2.5 lesson">importance {fixed(score.importanceOffset, 1)}</span>
-      <span className="op">×</span>
-      <span className="chip" title="Time-decay activation, 0.15 to 1">activation {fixed(score.activation)}</span>
-      <span className="op">×</span>
-      <span className="chip" title="1.25 when the memory belongs to the current project">project {fixed(score.projectBoost)}</span>
+      {terms.map((t, i) => (
+        <span key={t.label} className="row" style={{ gap: 4 }}>
+          {i > 0 && <span className="op">×</span>}
+          <span className="chip" title={t.title}>{t.label} {t.value}</span>
+        </span>
+      ))}
       <span className="op">=</span>
-      <span className="chip strong">{fixed(score.final)}</span>
+      <span className="chip strong">{fixed(final)}</span>
     </div>
   );
+}
+
+/** The factors of a recall score and their product. */
+export function ScoreChips({ score }: { score: Recalled['score'] }) {
+  return <FactorChips terms={factorTerms(factorsFromScore(score))} final={score.final} />;
 }
 
 /**

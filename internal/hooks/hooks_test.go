@@ -12,6 +12,7 @@ import (
 	"github.com/aitakemyjob/memtree/internal/config"
 	"github.com/aitakemyjob/memtree/internal/core"
 	"github.com/aitakemyjob/memtree/internal/store"
+	"github.com/aitakemyjob/memtree/internal/trace"
 )
 
 func newMgr(t *testing.T) (*Manager, *core.Service, string) {
@@ -375,5 +376,24 @@ func TestOurs(t *testing.T) {
 		if got := ours(cmd, ClaudeCode); got != want {
 			t.Errorf("%q: %v want %v", cmd, got, want)
 		}
+	}
+}
+
+func TestHookSurfaceThenCitationIsTracedAsUse(t *testing.T) {
+	m, svc, repo := newMgr(t)
+	ctx := context.Background()
+	rec, _ := svc.Save(ctx, store.MemoryRecord{Summary: "websocket reconnect uses exponential backoff", Project: repo, LatticePaths: []string{"project/architecture/realtime"}})
+	handle(t, m, ClaudeCode, "", map[string]any{"hook_event_name": "UserPromptSubmit", "session_id": "s1", "cwd": repo, "prompt": "why does the websocket reconnect lag?"})
+	handle(t, m, ClaudeCode, "", map[string]any{"hook_event_name": "Stop", "session_id": "s1", "cwd": repo, "last_assistant_message": "As " + rec.ID + " notes, backoff is exponential."})
+	es, _ := svc.Traces.List(ctx, trace.Filter{MemoryID: rec.ID})
+	if len(es) != 1 {
+		t.Fatalf("want the surfacing traced, got %d", len(es))
+	}
+	e := es[0]
+	if e.Origin != trace.OriginHook || e.Tool != "UserPromptSubmit" || e.Harness != ClaudeCode || e.SessionID != "s1" {
+		t.Errorf("event: %+v", e)
+	}
+	if len(e.Uses) != 1 || e.Uses[0].Evidence != trace.EvidenceCited {
+		t.Errorf("citing the id should count as use: %+v", e.Uses)
 	}
 }

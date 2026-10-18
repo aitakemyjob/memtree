@@ -13,7 +13,7 @@ stores, ranks, forgets gradually and shows it all to the human in the UI.
 
 | Tool | Purpose |
 |---|---|
-| `recall` | Search memory by wording **and** lattice category. Returns ids, ages, scores and why each matched. Recalled memories are reinforced. |
+| `recall` | Search memory by wording **and** lattice category. Returns ids, ages, scores and why each matched. Recalled memories are reinforced. Each call is recorded as a retrieval trace; a later `memory_get`, `memory_update`, `memory_supersede`, `memory_pin` or `memory_compress` on a returned id is recorded as evidence that it was used (see [Retrieval traces](ARCHITECTURE.md#retrieval-traces)). |
 | `memory_get` | Read one memory in full, with lattice paths and lineage. |
 | `memory_list` | List recent memories (pinned first) without searching. |
 | `lattice_browse` | Show the category lattice as a tree with counts; optionally list memories filed under a path. |

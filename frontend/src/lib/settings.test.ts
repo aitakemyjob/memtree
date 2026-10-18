@@ -4,7 +4,7 @@ import type { Settings } from './types';
 
 const ok: Settings = {
   theme: 'sfc-dark', fontSize: 13, mcpPort: 47475, dbPath: '', agentWrites: true, captureHooks: true, surfaceThreshold: 0.25, maxSurface: 3,
-  linkHalfLifeDays: 30, maintainHours: 12, tiers: { ageHoursToSemantic: 72, ageHoursToCompact: 720, activationCeilingToCompress: 0.5, minClusterSize: 2 },
+  linkHalfLifeDays: 30, maintainHours: 12, traceRetrievals: true, traceRetentionDays: 90, tiers: { ageHoursToSemantic: 72, ageHoursToCompact: 720, activationCeilingToCompress: 0.5, minClusterSize: 2 },
 };
 
 describe('validateSettings', () => {

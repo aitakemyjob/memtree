@@ -1,4 +1,4 @@
-import { Activity, Combine, LayoutGrid, MessagesSquare, Network, Plug, Settings, Brain, type LucideIcon } from 'lucide-react';
+import { Activity, Combine, Footprints, LayoutGrid, MessagesSquare, Network, Plug, Settings, Brain, type LucideIcon } from 'lucide-react';
 import { useStore } from '../lib/store';
 import { VIEW_TITLES, type TabKind } from '../lib/tabs';
 
@@ -7,13 +7,14 @@ export const VIEW_ICONS: Record<TabKind, LucideIcon> = {
   memories: Brain,
   lattice: Network,
   timeline: LayoutGrid,
+  traces: Footprints,
   captures: MessagesSquare,
   consolidation: Combine,
   activity: Activity,
   settings: Settings,
 };
 
-const views: TabKind[] = ['memories', 'lattice', 'timeline', 'captures', 'consolidation', 'activity'];
+const views: TabKind[] = ['memories', 'lattice', 'timeline', 'traces', 'captures', 'consolidation', 'activity'];
 
 /**
  * Left icon rail: one button per view (opens or focuses its tab), with a

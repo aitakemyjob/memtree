@@ -2,9 +2,8 @@
 import { hierarchy, treemap, treemapSquarify } from 'd3-hierarchy';
 import { memoryActivation, DEFAULT_FLOOR } from './activation';
 import { ageHours, clamp, firstLine, projectName } from './format';
-import type { MemoryRecord } from './types';
+import type { HeatRow, MemoryRecord } from './types';
 
-export type ColorBy = 'activation' | 'age' | 'importance';
 export type SizeBy = 'importance' | 'equal';
 
 export interface Cell {
@@ -39,30 +38,100 @@ interface Node {
   metric?: string;
 }
 
+/** What a heat mode may read besides the record. */
+export interface HeatContext {
+  nowMs: number;
+  /** Age of the oldest memory in view. */
+  maxAgeHours: number;
+  /** Retrieval counts by memory id (empty unless a mode needs traces). */
+  traces: Map<string, HeatRow>;
+  /** The most any memory in view was retrieved. */
+  maxRetrieved: number;
+}
+
+/** One way to colour the heatmap. Add a mode by adding an entry to HEAT_MODES. */
+export interface HeatMode {
+  label: string;
+  /** Legend text for the cold and hot ends. */
+  legend: [string, string];
+  /** The mode reads retrieval traces, so the view must load them. */
+  needsTraces?: boolean;
+  /** Maps a record to heat in [0,1] and a tooltip metric. */
+  heat(r: MemoryRecord, ctx: HeatContext): { heat: number; metric: string };
+}
+
 /**
- * Normalises a record to a 0..1 heat value for the chosen colour mode.
- * Activation maps [floor,1] onto [0,1]; age maps "now" to 1 and the oldest
- * memory in view to 0; importance maps 1..2.5 onto 0..1.
+ * The colour modes. Activation maps [floor,1] onto [0,1]; age maps "now" to
+ * 1 and the oldest memory in view to 0; importance maps 1..2.5 onto 0..1;
+ * retrieved is log-scaled against the most retrieved memory; used is the
+ * share of retrievals with evidence the agent relied on the memory.
  */
-export function heatFor(mode: ColorBy, r: MemoryRecord, nowMs: number, maxAgeHours: number): { heat: number; metric: string } {
-  switch (mode) {
-    case 'activation': {
+export const HEAT_MODES = {
+  activation: {
+    label: 'Activation',
+    legend: ['cold (faded)', 'hot (recently used)'],
+    heat: (r, { nowMs }) => {
       const a = memoryActivation(r, nowMs);
       return { heat: clamp((a - DEFAULT_FLOOR) / (1 - DEFAULT_FLOOR), 0, 1), metric: `activation ${a.toFixed(2)}` };
-    }
-    case 'age': {
+    },
+  },
+  age: {
+    label: 'Age',
+    legend: ['oldest', 'newest'],
+    heat: (r, { nowMs, maxAgeHours }) => {
       const h = ageHours(r.createdAt, nowMs);
       return { heat: maxAgeHours > 0 ? clamp(1 - h / maxAgeHours, 0, 1) : 1, metric: `created ${h < 48 ? Math.round(h) + ' h' : Math.round(h / 24) + ' d'} ago` };
-    }
-    default:
-      return { heat: clamp((r.importance - 1) / 1.5, 0, 1), metric: `importance ${r.importance}` };
-  }
+    },
+  },
+  importance: {
+    label: 'Importance',
+    legend: ['routine', 'lesson'],
+    heat: (r) => ({ heat: clamp((r.importance - 1) / 1.5, 0, 1), metric: `importance ${r.importance}` }),
+  },
+  retrieved: {
+    label: 'Retrieved',
+    legend: ['never retrieved', 'most retrieved'],
+    needsTraces: true,
+    heat: (r, { traces, maxRetrieved }) => {
+      const n = traces.get(r.id)?.retrieved ?? 0;
+      return { heat: n > 0 && maxRetrieved > 0 ? Math.log1p(n) / Math.log1p(maxRetrieved) : 0, metric: `retrieved ${n}×` };
+    },
+  },
+  used: {
+    label: 'Used',
+    legend: ['never used', 'used every time'],
+    needsTraces: true,
+    heat: (r, { traces }) => {
+      const t = traces.get(r.id);
+      if (!t?.retrieved) return { heat: 0, metric: 'never retrieved' };
+      return { heat: t.used / t.retrieved, metric: `used ${t.used} of ${t.retrieved} retrievals` };
+    },
+  },
+} satisfies Record<string, HeatMode>;
+
+export type ColorBy = keyof typeof HEAT_MODES;
+
+/** Builds the context heat modes read, from the records in view and their retrieval counts. */
+export function heatContext(live: MemoryRecord[], nowMs: number, traces: HeatRow[] = []): HeatContext {
+  const ids = new Set(live.map((r) => r.id));
+  const inView = traces.filter((t) => ids.has(t.memoryId));
+  return {
+    nowMs,
+    maxAgeHours: live.reduce((m, r) => Math.max(m, ageHours(r.createdAt, nowMs)), 0),
+    traces: new Map(inView.map((t) => [t.memoryId, t])),
+    maxRetrieved: inView.reduce((m, t) => Math.max(m, t.retrieved), 0),
+  };
+}
+
+/** Normalises a record to a 0..1 heat value for the chosen colour mode. */
+export function heatFor(mode: ColorBy, r: MemoryRecord, ctx: HeatContext): { heat: number; metric: string } {
+  return HEAT_MODES[mode].heat(r, ctx);
 }
 
 /** Builds the project -> kind -> memory tree. Superseded/archived records are skipped. */
-export function buildTree(memories: MemoryRecord[], nowMs: number, colorBy: ColorBy, sizeBy: SizeBy): Node {
+export function buildTree(memories: MemoryRecord[], nowMs: number, colorBy: ColorBy, sizeBy: SizeBy, traces: HeatRow[] = []): Node {
   const live = memories.filter((m) => !m.archivedAt && !m.supersededBy);
-  const maxAge = live.reduce((m, r) => Math.max(m, ageHours(r.createdAt, nowMs)), 0);
+  const ctx = heatContext(live, nowMs, traces);
   const projects = new Map<string, Map<string, MemoryRecord[]>>();
   for (const r of live) {
     const byKind = projects.get(r.project) ?? new Map<string, MemoryRecord[]>();
@@ -75,7 +144,7 @@ export function buildTree(memories: MemoryRecord[], nowMs: number, colorBy: Colo
     for (const [kind, recs] of [...kinds].sort((a, b) => a[0].localeCompare(b[0]))) {
       const kNode: Node = { key: `p:${project}/k:${kind}`, name: kind, type: 'kind', size: 0, heat: 0, children: [] };
       for (const r of recs) {
-        const { heat, metric } = heatFor(colorBy, r, nowMs, maxAge);
+        const { heat, metric } = heatFor(colorBy, r, ctx);
         kNode.children!.push({ key: r.id, name: firstLine(r.summary), type: 'memory', size: sizeBy === 'importance' ? r.importance : 1, heat, record: r, metric });
       }
       pNode.children!.push(kNode);
@@ -90,9 +159,9 @@ export function buildTree(memories: MemoryRecord[], nowMs: number, colorBy: Colo
  * cells reserve a header strip for their label.
  */
 export function layoutMemories(
-  memories: MemoryRecord[], nowMs: number, width: number, height: number, opts: { colorBy?: ColorBy; sizeBy?: SizeBy } = {},
+  memories: MemoryRecord[], nowMs: number, width: number, height: number, opts: { colorBy?: ColorBy; sizeBy?: SizeBy; traces?: HeatRow[] } = {},
 ): Cell[] {
-  const tree = buildTree(memories, nowMs, opts.colorBy ?? 'activation', opts.sizeBy ?? 'importance');
+  const tree = buildTree(memories, nowMs, opts.colorBy ?? 'activation', opts.sizeBy ?? 'importance', opts.traces);
   if (!tree.children?.length || width <= 0 || height <= 0) return [];
   const h = hierarchy<Node>(tree, (d) => d.children)
     .sum((d) => (d.children ? 0 : d.size))
@@ -117,3 +186,6 @@ export function layoutMemories(
   });
   return cells;
 }
+
+/** Whether a colour mode reads retrieval traces. */
+export const modeNeedsTraces = (mode: ColorBy): boolean => (HEAT_MODES[mode] as HeatMode).needsTraces === true;

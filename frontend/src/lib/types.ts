@@ -40,12 +40,20 @@ export interface MemoryRecord {
   latticePaths: string[];
 }
 
-/** store.ScoreDecomposition: final = bm25Normalized x importanceOffset x activation x projectBoost. */
+/**
+ * store.ScoreDecomposition:
+ * final = max(bm25Normalized, linkScore) x importanceOffset x activation x projectBoost x bothBonus.
+ * A route that did not find the memory leaves its relevance term 0 (or absent).
+ */
 export interface ScoreDecomposition {
   bm25Normalized: number;
+  /** Lattice route: link weight x node activation. */
+  linkScore?: number;
   importanceOffset: number;
   activation: number;
   projectBoost: number;
+  /** Present when both routes agreed. */
+  bothBonus?: number;
   final: number;
 }
 
@@ -55,12 +63,18 @@ export interface Recalled {
   score: ScoreDecomposition;
   source: 'text' | 'lattice' | 'both';
   via?: string;
+  /** Fired category the lattice path started at. */
+  seed?: string;
+  depth?: number;
 }
 
 /** core.RecallResult */
 export interface RecallResult {
   memories: Recalled[];
   categories: string[];
+  /** Which query token fired which category. */
+  matches: TraceMatch[];
+  traceId?: string;
 }
 
 /** store.CategoryNode */
@@ -96,6 +110,10 @@ export interface ActivationHit {
   itemId: string;
   score: number;
   viaCategory: string;
+  /** Fired category activation reached viaCategory from. */
+  seed: string;
+  /** Hops from seed to viaCategory. */
+  depth: number;
   summary: string;
 }
 
@@ -177,6 +195,10 @@ export interface Settings {
   maxSurface: number;
   linkHalfLifeDays: number;
   maintainHours: number;
+  /** Record why memories were retrieved and whether they were used. */
+  traceRetrievals: boolean;
+  /** Days to keep retrieval traces; 0 keeps them forever. */
+  traceRetentionDays: number;
   tiers: TierConfig;
 }
 
@@ -265,7 +287,7 @@ export interface FireResult {
 
 /** Event envelope published on the bus (events.Event). */
 export interface BusEvent {
-  type: 'config' | 'activity' | 'memory' | 'lattice' | 'capture' | 'mcp' | 'focus' | string;
+  type: 'config' | 'activity' | 'memory' | 'lattice' | 'capture' | 'mcp' | 'focus' | 'trace' | string;
   time?: string;
   data?: unknown;
 }
@@ -361,4 +383,94 @@ export interface PathWarning {
   message: string;
   /** An existing category to use instead. */
   suggest?: string;
+}
+
+/** Who asked for a retrieval (trace.Origin*). */
+export type TraceOrigin = 'mcp' | 'hook' | 'ui' | 'cli' | 'internal';
+/** How a hit was reached (trace.Route*). */
+export type TraceRoute = 'text' | 'lattice' | 'both' | 'anchor';
+/** Why a retrieved memory is believed used (trace.Evidence*); other strings may appear. */
+export type TraceEvidence = 'fetched' | 'acted' | 'cited' | string;
+
+/** trace.Match: one query token that fired a lattice category. */
+export interface TraceMatch {
+  token: string;
+  category: string;
+}
+
+/** trace.Factors: final = max(text, link) x importance x activation x projectBoost x bothBonus. */
+export interface TraceFactors {
+  text: number;
+  link: number;
+  importance: number;
+  activation: number;
+  projectBoost: number;
+  bothBonus: number;
+  final: number;
+}
+
+/** trace.Hit */
+export interface TraceHit {
+  memoryId: string;
+  rank: number;
+  route: TraceRoute | string;
+  /** Lattice category it was reached through; for anchors: latest, landmark or pinned. */
+  via?: string;
+  seed?: string;
+  depth: number;
+  factors: TraceFactors;
+}
+
+/** trace.Use */
+export interface TraceUse {
+  eventId: string;
+  memoryId: string;
+  evidence: TraceEvidence;
+  detail?: string;
+  at: string;
+}
+
+/** trace.Event: one retrieval. */
+export interface TraceEvent {
+  id: string;
+  at: string;
+  origin: TraceOrigin | string;
+  /** Tool, hook event or API method name. */
+  tool: string;
+  harness: string;
+  sessionId: string;
+  project: string;
+  query: string;
+  matches: TraceMatch[];
+  reinforced: boolean;
+  hits: TraceHit[];
+  uses: TraceUse[];
+}
+
+/** trace.Filter; omitted fields do not filter. */
+export interface TraceFilter {
+  project?: string;
+  origins?: string[];
+  sessionId?: string;
+  memoryId?: string;
+  since?: string;
+  until?: string;
+  quietOnly?: boolean;
+  limit?: number;
+  offset?: number;
+}
+
+/** trace.HeatRow */
+export interface HeatRow {
+  memoryId: string;
+  retrieved: number;
+  used: number;
+  lastRetrieved: string;
+}
+
+/** trace.DayCount (UTC day). */
+export interface DayCount {
+  day: string;
+  retrieved: number;
+  used: number;
 }

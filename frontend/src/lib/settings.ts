@@ -10,6 +10,7 @@ export function validateSettings(s: Settings): string[] {
   if (!Number.isInteger(s.maxSurface) || s.maxSurface < 1 || s.maxSurface > 10) out.push('Max surfaced memories must be a whole number from 1 to 10.');
   if (!num(s.linkHalfLifeDays) || s.linkHalfLifeDays < 1) out.push('Link half-life must be at least 1 day.');
   if (!num(s.maintainHours) || s.maintainHours < 1) out.push('Maintenance interval must be at least 1 hour.');
+  if (!Number.isInteger(s.traceRetentionDays) || s.traceRetentionDays < 0) out.push('Trace retention must be a whole number of days (0 keeps traces forever).');
   const t = s.tiers;
   if (!num(t.ageHoursToSemantic) || t.ageHoursToSemantic < 1) out.push('Episodic age gate must be at least 1 hour.');
   if (!num(t.ageHoursToCompact) || t.ageHoursToCompact < 1) out.push('Semantic age gate must be at least 1 hour.');

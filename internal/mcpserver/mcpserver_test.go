@@ -12,6 +12,7 @@ import (
 
 	"github.com/aitakemyjob/memtree/internal/config"
 	"github.com/aitakemyjob/memtree/internal/core"
+	"github.com/aitakemyjob/memtree/internal/trace"
 )
 
 type harness struct {
@@ -291,5 +292,24 @@ func TestToolsAreDocumented(t *testing.T) {
 		if len(tool.Description) < 40 {
 			t.Errorf("tool %s needs a description written for an LLM", tool.Name)
 		}
+	}
+}
+
+func TestRecallThenGetIsTracedAsUse(t *testing.T) {
+	h := newHarness(t)
+	ctx := context.Background()
+	id := idFrom(t, h.must("memory_save", map[string]any{"summary": "Use allkeys-lru eviction for the redis cache.", "project": h.repo, "lattice_paths": []string{"knowledge/tools/redis"}}))
+	h.must("recall", map[string]any{"query": "redis eviction", "project": h.repo}, id)
+	h.must("memory_get", map[string]any{"id": id})
+	es, err := h.core.Traces.List(ctx, trace.Filter{MemoryID: id})
+	if err != nil || len(es) != 1 {
+		t.Fatalf("want the recall traced: %d %v", len(es), err)
+	}
+	e := es[0]
+	if e.Origin != trace.OriginMCP || e.Tool != "recall" || e.Harness != "test-agent" || !e.Reinforced { // the in-memory transport has no session id
+		t.Errorf("event: %+v", e)
+	}
+	if len(e.Uses) != 1 || e.Uses[0].Evidence != trace.EvidenceFetched || e.Uses[0].MemoryID != id {
+		t.Errorf("memory_get after recall should count as use: %+v", e.Uses)
 	}
 }

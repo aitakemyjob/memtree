@@ -118,6 +118,21 @@ type mergeArgs struct {
 	To   string `json:"to" jsonschema:"category that keeps the links"`
 }
 
+// memoryIDs names the memory a single-id tool call is about.
+func (a idArgs) memoryIDs() []string { return []string{a.ID} }
+
+// memoryIDs names the memory being updated.
+func (a updateArgs) memoryIDs() []string { return []string{a.ID} }
+
+// memoryIDs names the memory being pinned or unpinned.
+func (a pinArgs) memoryIDs() []string { return []string{a.ID} }
+
+// memoryIDs names the memory being superseded.
+func (a supersedeArgs) memoryIDs() []string { return []string{a.ID} }
+
+// memoryIDs names the memories being distilled.
+func (a compressArgs) memoryIDs() []string { return a.IDs }
+
 // resolve maps an agent's working directory to a project key.
 func (s *Server) resolve(project string) string { return core.ResolveProject(project) }
 
