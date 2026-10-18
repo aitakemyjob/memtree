@@ -215,7 +215,7 @@ func (a *API) registerMemory() {
 	})
 	a.methods["memory.get"] = method(func(ctx context.Context, in idIn) (any, error) { return c.Memory.Get(ctx, in.ID) })
 	a.methods["memory.recall"] = method(func(ctx context.Context, in recallIn) (any, error) {
-		q, err := in.listIn.query()
+		q, err := in.query()
 		if err != nil {
 			return nil, err
 		}

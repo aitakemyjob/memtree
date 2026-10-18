@@ -1,0 +1,34 @@
+# Path rules for actions/labeler (see workflows/labeler.yml).
+go:
+  - changed-files:
+      - any-glob-to-any-file: ['**/*.go', 'go.mod', 'go.sum']
+frontend:
+  - changed-files:
+      - any-glob-to-any-file: ['frontend/**']
+documentation:
+  - changed-files:
+      - any-glob-to-any-file: ['docs/**', '**/*.md']
+ci:
+  - changed-files:
+      - any-glob-to-any-file: ['.github/**', 'scripts/**', 'Makefile']
+"area: mcp":
+  - changed-files:
+      - any-glob-to-any-file: ['internal/mcpserver/**', 'bridge.go']
+"area: hooks":
+  - changed-files:
+      - any-glob-to-any-file: ['internal/hooks/**', 'hookcmd.go', 'docs/HOOKS.md', 'frontend/src/components/HooksPanel.tsx']
+"area: recall":
+  - changed-files:
+      - any-glob-to-any-file: ['internal/core/recall.go', 'internal/store/memory.go', 'internal/store/activation.go', 'frontend/src/lib/activation.ts']
+"area: lattice":
+  - changed-files:
+      - any-glob-to-any-file: ['internal/store/lattice.go', 'internal/store/signals.go', 'internal/store/lint.go', 'frontend/src/views/LatticeView.tsx', 'frontend/src/lib/latticeFlow.ts', 'frontend/src/lib/layout.ts']
+"area: traces":
+  - changed-files:
+      - any-glob-to-any-file: ['internal/trace/**', 'internal/store/trace.go', 'internal/core/trace.go', 'frontend/src/views/TracesView.tsx', 'frontend/src/lib/trace*.ts']
+"area: consolidation":
+  - changed-files:
+      - any-glob-to-any-file: ['internal/store/consolidation.go', 'frontend/src/views/ConsolidationView.tsx']
+"area: packaging":
+  - changed-files:
+      - any-glob-to-any-file: ['packaging/**', 'build/**', 'scripts/build.*', 'scripts/install.*', 'wails.json']

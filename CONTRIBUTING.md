@@ -10,15 +10,58 @@ the [MIT License](LICENSE).
    agree on the approach.
 2. Fork, create a branch (`feat/...`, `fix/...`, `docs/...`), and keep PRs
    focused.
-3. Run `make test` before pushing. CI must be green and a maintainer review
-   is required before merging into `main`; PRs are squash-merged.
-4. Use clear commit/PR titles, e.g. `fix: recall misses lattice-only matches`.
+3. Run `make test` and `make lint` before pushing. CI must be green and a
+   maintainer review is required before merging into `main`; PRs are
+   squash-merged.
+4. Sign off every commit (`git commit -s`). This adds a `Signed-off-by:` line
+   certifying, under the [Developer Certificate of Origin](https://developercert.org),
+   that you have the right to submit the change. The DCO check fails without
+   it; fix existing commits with `git rebase --signoff main`.
+5. Use clear commit/PR titles, e.g. `fix: recall misses lattice-only matches`.
+   Labels on the PR decide where it appears in the release notes; area labels
+   are added automatically from the files you change.
+
+## AI-assisted contributions
+
+You're welcome to use AI tools (memtree is built for them), but you are the
+author of your pull request:
+
+- **Read and understand every line you submit**, and be ready to explain it
+  in review.
+- **Run it before opening the PR:** `make test` and `make lint` must pass
+  locally. PRs that are clearly unreviewed output (placeholder text,
+  truncated files, deleted tests, code that doesn't compile) will be closed.
+- **Keep the change to the issue.** Don't let a tool rewrite or reformat files
+  it didn't need to touch, and never remove tests to make something pass.
+- **Write the PR description yourself,** and make sure it matches the diff.
+- Signing off a commit (`git commit -s`) certifies you have the right to
+  submit it, whoever or whatever helped write it.
+
+## Finding something to work on
+
+Issues move through these labels:
+
+| Label | Meaning |
+|---|---|
+| `triage` | New; a maintainer hasn't looked at it yet. Issue forms add it automatically. |
+| `needs repro` | Triaged, but we need steps or details to reproduce it before anyone can fix it. Without new information it closes after five weeks. |
+| `ready` | Triaged and specified: [pick one up](https://github.com/aitakemyjob/memtree/issues?q=is%3Aopen+label%3Aready). |
+
+`good first issue` marks small, well-scoped `ready` issues. `area: …` labels
+say which part of memtree is involved, and a milestone means we'd like it in
+that release.
+
+To take a `ready` issue, comment that you're working on it so nobody
+duplicates the effort. Open questions in an issue can be settled in the
+issue thread before or during the PR.
 
 ## Setup
 
 ```sh
-make tools deps   # Wails CLI and frontend packages
-make test         # everything CI runs (Go with -race, frontend typecheck + tests)
+make tools deps   # Wails CLI, golangci-lint, govulncheck and frontend packages
+make test         # Go with -race, frontend typecheck + tests
+make lint         # golangci-lint and ESLint, as CI runs them
+make vuln         # govulncheck and npm audit
 make dev          # desktop app with hot reload
 ```
 
@@ -33,7 +76,8 @@ of the system one (ESP-IDF, for instance) the race build fails with
 
 ## Conventions
 
-- **Go:** `gofmt`, `go vet -tags nogui ./...` clean. Business logic belongs in
+- **Go:** `make lint` clean (golangci-lint, configured in `.golangci.yml`;
+  it includes gofmt and vet). Business logic belongs in
   `internal/core` (rules) and `internal/store` (persistence); `api`,
   `mcpserver`, `server` and `hooks` stay thin adapters. Prefer table-driven
   tests. Stores take an injected clock: never call `time.Now()` below `core`.
@@ -44,7 +88,8 @@ of the system one (ESP-IDF, for instance) the race build fails with
   archive, and only a human action in the UI deletes. Keep it that way.
 - **Hooks fail open.** A hook must never block or break the agent: swallow
   errors, exit 0, print only what the harness should inject.
-- **TypeScript:** strict mode, no unused locals. Keep pure logic in `src/lib`
+- **TypeScript:** strict mode, `npm run lint` (ESLint) clean with no
+  warnings. Keep pure logic in `src/lib`
   with `*.test.ts` beside it; views consume the store and `api`.
 - **Documentation:** every Go function and method has a doc comment
   (`docs_test.go` enforces this in CI), and every TypeScript function,
@@ -76,5 +121,8 @@ background automatically.
 
 Run `make release VERSION=vX.Y.Z` from a clean `main`. It runs the tests,
 tags and pushes; the Release workflow builds every platform with
-`scripts/build.sh` / `scripts/build.ps1` and publishes the GitHub release.
-See the README's *Releasing* section for signing secrets.
+`scripts/build.sh` / `scripts/build.ps1` and publishes the GitHub release
+with checksums, an SPDX SBOM and signed build provenance. Release notes are
+grouped by PR label (`.github/release.yml`); add user-facing changes to
+`CHANGELOG.md` under *Unreleased* as you go. See the README's *Releasing*
+section for signing secrets.

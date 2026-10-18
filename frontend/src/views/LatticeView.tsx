@@ -38,11 +38,14 @@ export function LatticeView() {
   );
 }
 
+/** Stable empty fallback so memoised layouts don't recompute before app state loads. */
+const NO_AXES: string[] = [];
+
 function LatticeInner() {
   const s = useStore();
   const rf = useReactFlow();
   const nodes = s.nodes;
-  const axisRoots = s.app?.axisRoots ?? [];
+  const axisRoots = s.app?.axisRoots ?? NO_AXES;
   const selected = s.inspect?.kind === 'node' ? s.inspect.id : undefined;
 
   const [search, setSearch] = useState('');
